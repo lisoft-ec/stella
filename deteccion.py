@@ -14,7 +14,7 @@ import odoorpc
 path = "/home/almustafa/Programas/coral/edgetpu-master/test_data/"
 
 modelo = path + "mobilenet_ssd_v2_coco_quant_postprocess_edgetpu.tflite"
-video = "/home/almustafa/Vídeos/out.avi"
+video = "/dev/video0" #"/home/almustafa/Vídeos/out.avi"
 
 # udevadm info --query=all --name=/dev/mmcblk0   
 corte = (250, 200, 400, 450)          
