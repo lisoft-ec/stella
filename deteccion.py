@@ -22,7 +22,6 @@ corte = (250, 200, 400, 450)
 piso = (20,120,120,200)
 TRANSPARENCIA = 0.3
 ninguno = 0
-cuenta_ant = cuenta
 
 ##########################################################
 
@@ -43,7 +42,6 @@ class DetectorPersonas:
  
   def get(self, frame):
     global ninguno
-    global cuenta
 
     frame = frame[corte[1]:corte[3], corte[0]:corte[2]]
 
@@ -73,13 +71,8 @@ class DetectorPersonas:
         })
     
     Persona.asociar_objetos_rect(detectados, piso, m_registro)
- 
-      
-    
+         
     Persona.dibujar(frame, piso, TRANSPARENCIA)
-
-#    cv2.rectangle(frame, (0,frame.shape[0] - 40), (70, frame.shape[0]), (0, 0, 0), -1)
-#    cv2.putText(frame, str(cuenta), (10, frame.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX , 1, (0,255,0), 2)    
 
     return frame
 
