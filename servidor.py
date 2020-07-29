@@ -48,6 +48,7 @@ def detect_motion(frameCount):
 
 	md = DetectorPersonas()
 	total = 0
+	primer = True
 
 	# loop over frames from the video stream
 	while True:
@@ -57,7 +58,15 @@ def detect_motion(frameCount):
 		frame = cv2.flip(frame, 0)
 		if con_video: writer.write(frame)
 
+		if primer:
+			cv2.imwrite("frame0.jpg", frame)		
+
 		frame = md.get(frame)
+
+		if primer:
+			primer = False
+			cv2.imwrite("frame_final.jpg", frame)
+
 		# grab the current timestamp and draw it on the frame
 		timestamp = datetime.datetime.now()
 		cv2.putText(frame, timestamp.strftime( 

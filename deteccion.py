@@ -45,6 +45,8 @@ class DetectorPersonas:
     global ninguno
     global cuenta
 
+    frame = frame[corte[1]:corte[3], corte[0]:corte[2]]
+
     img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
 
     mask = np.zeros_like(img)
