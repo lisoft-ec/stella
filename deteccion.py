@@ -11,17 +11,17 @@ from persona import Persona
 
 import odoorpc
 
-path = "/home/almustafa/Programas/coral/edgetpu-master/test_data/"
+path = "/home/mendel/coral_contador/models/"
+
 
 modelo = path + "mobilenet_ssd_v2_coco_quant_postprocess_edgetpu.tflite"
-video = "/dev/video0" #"/home/almustafa/Vídeos/out.avi"
+video = "/dev/video0"
 
 # udevadm info --query=all --name=/dev/mmcblk0   
 corte = (250, 200, 400, 450)          
 piso = (20,120,120,200)
 TRANSPARENCIA = 0.3
 ninguno = 0
-cuenta = 3  
 cuenta_ant = cuenta
 
 ##########################################################
@@ -70,16 +70,14 @@ class DetectorPersonas:
           'usado': 0,         
         })
     
-    res = Persona.asociar_objetos_rect(detectados, piso, m_registro)
-    if res != "":
-      print("###########%s##############" % res)
-      cuenta = cuenta + (1 if res == "ENTRA" else -1)
+    Persona.asociar_objetos_rect(detectados, piso, m_registro)
+ 
       
     
     Persona.dibujar(frame, piso, TRANSPARENCIA)
 
-    cv2.rectangle(frame, (0,frame.shape[0] - 40), (70, frame.shape[0]), (0, 0, 0), -1)
-    cv2.putText(frame, str(cuenta), (10, frame.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX , 1, (0,255,0), 2)    
+#    cv2.rectangle(frame, (0,frame.shape[0] - 40), (70, frame.shape[0]), (0, 0, 0), -1)
+#    cv2.putText(frame, str(cuenta), (10, frame.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX , 1, (0,255,0), 2)    
 
     return frame
 
@@ -104,12 +102,12 @@ if __name__ == '__main__':
       break
 
     if primer:
-      cv2.imwrite("/tmp/frame0.jpg", frame)
+      cv2.imwrite("frame0.jpg", frame)
 
     frame = frame[corte[1]:corte[3], corte[0]:corte[2]]
 
     if primer:
-      cv2.imwrite("/tmp/frame_corte.jpg", frame)
+      cv2.imwrite("frame_corte.jpg", frame)
     #frame = cv2.resize(frame, (640,480))
     frame = obj.get(frame)
 
@@ -117,7 +115,7 @@ if __name__ == '__main__':
 
     if primer:
       primer = False
-      cv2.imwrite("/tmp/frame_final.jpg", frame)
+      cv2.imwrite("frame_final.jpg", frame)
 
     key = cv2.waitKey(1) & 0xFF
     if key == ord("q"):

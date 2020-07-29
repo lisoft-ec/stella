@@ -11,6 +11,7 @@ import datetime
 import time
 import cv2
 
+con_video = 0
 # initialize the output frame and a lock used to ensure thread-safe
 # exchanges of the output frames (useful for multiple browsers/tabs
 # are viewing tthe stream)
@@ -23,11 +24,17 @@ app = Flask(__name__)
 # initialize the video stream and allow the camera sensor to
 # warmup
 
-video = 0 #"/home/almustafa/Vídeos/entrada002.webm"
+video = 0 # "/home/mendel/contador/demo/entrada002.webm"
 vs = cv2.VideoCapture(video)
-vs.set(cv2.CAP_PROP_FRAME_WIDTH,720)
+vs.set(cv2.CAP_PROP_FRAME_WIDTH,640)
 vs.set(cv2.CAP_PROP_FRAME_HEIGHT,480)
 vs.set(cv2.CAP_PROP_FPS, 30)
+
+# initialize our video writer
+if con_video:
+   fourcc =  cv2.VideoWriter_fourcc(*"XVID")
+   writer = cv2.VideoWriter("/home/mendel/out.avi", fourcc, 30,
+			(640, 480), True)
 
 time.sleep(1.0)
 
@@ -47,15 +54,17 @@ def detect_motion(frameCount):
 		(grabbed, frame) = vs.read()
 		if not grabbed:
 			break
-			
+		frame = cv2.flip(frame, 0)
+		if con_video: writer.write(frame)
+
 		frame = md.get(frame)
 		# grab the current timestamp and draw it on the frame
 		timestamp = datetime.datetime.now()
 		cv2.putText(frame, timestamp.strftime( 
 			"%d/%m/%Y %I:%M:%S%p"), (150, frame.shape[0] - 10),
-			cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
-
-		time.sleep(0.03)
+			cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 1)
+		#if con_video: writer.write(frame)
+		#time.sleep(0.03)
 
 		# if the total number of frames has reached a sufficient
 		# number to construct a reasonable background model, then
@@ -66,6 +75,7 @@ def detect_motion(frameCount):
 		# lock
 		with lock:
 			outputFrame = frame.copy()
+#	writer.close()
 
 		
 def generate():
@@ -107,7 +117,7 @@ if __name__ == '__main__':
 	t.start()
 
 	# start the flask app
-	app.run(host="0.0.0.0", port=7777, debug=True,
+	app.run(host="0.0.0.0", port=7777, debug=False,
 		threaded=True, use_reloader=False)
 
 # release the video stream pointer
