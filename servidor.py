@@ -25,7 +25,7 @@ app = Flask(__name__)
 # warmup
 
 video = 0 # "/home/mendel/contador/demo/entrada002.webm"
-vs = cv2.VideoCapture(video)
+vs = cv2.VideoCapture(video, cv2.CAP_V4L)
 vs.set(cv2.CAP_PROP_FRAME_WIDTH,1920)
 vs.set(cv2.CAP_PROP_FRAME_HEIGHT,1080)
 vs.set(cv2.CAP_PROP_FPS, 15)
