@@ -40,7 +40,7 @@ def index():
 	return render_template("index.html")
 
 def detect_motion(frameCount):
-	global vs, outputFrame, lock
+	global vs, outputFrame, lock, ind_video
 
 	md = DetectorPersonas()
 	total = 0
@@ -72,8 +72,13 @@ def detect_motion(frameCount):
 				grabando -= 1
 				if grabando <= 0:
 					grabando = 0
-					if writer and writer.isOpened():
+
+				if writer and writer.isOpened():
+					if grabando <= 0:						
 						writer.release()
+					else:
+						writer.write(frame)
+				
 
 
 		# grab the current timestamp and draw it on the frame
