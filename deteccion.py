@@ -11,10 +11,7 @@ from persona import Persona
 
 import odoorpc
 
-path = "/home/mendel/coral_contador/models/"
-
-
-modelo = path + "mobilenet_ssd_v2_coco_quant_postprocess_edgetpu.tflite"
+modelo = "models/mobilenet_ssd_v2_coco_quant_postprocess_edgetpu.tflite"
 video = "/dev/video0"
 
 # udevadm info --query=all --name=/dev/mmcblk0   
@@ -74,7 +71,7 @@ class DetectorPersonas:
          
     Persona.dibujar(frame, piso, TRANSPARENCIA)
 
-    return frame
+    return len(detectados), frame
 
 
 if __name__ == '__main__':
@@ -99,12 +96,10 @@ if __name__ == '__main__':
     if primer:
       cv2.imwrite("frame0.jpg", frame)
 
-    frame = frame[corte[1]:corte[3], corte[0]:corte[2]]
-
     if primer:
       cv2.imwrite("frame_corte.jpg", frame)
     #frame = cv2.resize(frame, (640,480))
-    frame = obj.get(frame)
+    _, frame = obj.get(frame)
 
     #qcv2.imshow("Frame", frame)
 

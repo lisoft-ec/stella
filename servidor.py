@@ -11,7 +11,7 @@ import datetime
 import time
 import cv2
 
-con_video = 0
+con_video = 1
 # initialize the output frame and a lock used to ensure thread-safe
 # exchanges of the output frames (useful for multiple browsers/tabs
 # are viewing tthe stream)
@@ -26,16 +26,12 @@ app = Flask(__name__)
 
 video = 0 # "/home/mendel/contador/demo/entrada002.webm"
 vs = cv2.VideoCapture(video)
-vs.set(cv2.CAP_PROP_FRAME_WIDTH,640)
-vs.set(cv2.CAP_PROP_FRAME_HEIGHT,480)
-vs.set(cv2.CAP_PROP_FPS, 30)
+vs.set(cv2.CAP_PROP_FRAME_WIDTH,1920)
+vs.set(cv2.CAP_PROP_FRAME_HEIGHT,1080)
+vs.set(cv2.CAP_PROP_FPS, 15)
 
 # initialize our video writer
-if con_video:
-   fourcc =  cv2.VideoWriter_fourcc(*"XVID")
-   writer = cv2.VideoWriter("/home/mendel/out.avi", fourcc, 30,
-			(640, 480), True)
-
+ind_video = 1
 time.sleep(1.0)
 
 @app.route("/")
@@ -48,7 +44,8 @@ def detect_motion(frameCount):
 
 	md = DetectorPersonas()
 	total = 0
-	primer = True
+	grabando = 0
+	writer = False
 
 	# loop over frames from the video stream
 	while True:
@@ -56,23 +53,35 @@ def detect_motion(frameCount):
 		if not grabbed:
 			break
 		frame = cv2.flip(frame, 0)
-		if con_video: writer.write(frame)
 
-		if primer:
-			cv2.imwrite("frame0.jpg", frame)		
+		frame2 = cv2.resize(frame, (640,480))
 
-		frame = md.get(frame)
+		detectados, frame2 = md.get(frame2)
 
-		if primer:
-			primer = False
-			cv2.imwrite("frame_final.jpg", frame)
+		if con_video:
+			if detectados > 0: 
+				if grabando <= 0:					
+					#Crear video
+					fourcc =  cv2.VideoWriter_fourcc(*"XVID")
+					writer = cv2.VideoWriter("out_%s.avi" % ind_video, fourcc, 15, (1920, 1080), True)
+					ind_video += 1
+				
+				grabando = 15
+				writer.write(frame)
+			else:
+				grabando -= 1
+				if grabando <= 0:
+					grabando = 0
+					if writer and writer.isOpened():
+						writer.release()
+
 
 		# grab the current timestamp and draw it on the frame
 		timestamp = datetime.datetime.now()
-		cv2.putText(frame, timestamp.strftime( 
-			"%d/%m/%Y %I:%M:%S%p"), (150, frame.shape[0] - 10),
+		cv2.putText(frame2, timestamp.strftime( 
+			"%d/%m/%Y %I:%M:%S%p"), (150, frame2.shape[0] - 10),
 			cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 1)
-		#if con_video: writer.write(frame)
+		#if con_video: writer.write(frame2)
 		#time.sleep(0.03)
 
 		# if the total number of frames has reached a sufficient
@@ -83,7 +92,7 @@ def detect_motion(frameCount):
 		# acquire the lock, set the output frame, and release the
 		# lock
 		with lock:
-			outputFrame = frame.copy()
+			outputFrame = frame2.copy()
 #	writer.close()
 
 		
