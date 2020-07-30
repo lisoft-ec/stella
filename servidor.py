@@ -11,7 +11,7 @@ import datetime
 import time
 import cv2
 
-con_video = 1
+con_video = 0
 # initialize the output frame and a lock used to ensure thread-safe
 # exchanges of the output frames (useful for multiple browsers/tabs
 # are viewing tthe stream)
@@ -26,9 +26,9 @@ app = Flask(__name__)
 
 video = 0 # "/home/mendel/contador/demo/entrada002.webm"
 vs = cv2.VideoCapture(video, cv2.CAP_V4L)
-vs.set(cv2.CAP_PROP_FRAME_WIDTH,1920)
-vs.set(cv2.CAP_PROP_FRAME_HEIGHT,1080)
-vs.set(cv2.CAP_PROP_FPS, 15)
+vs.set(cv2.CAP_PROP_FRAME_WIDTH,640)
+vs.set(cv2.CAP_PROP_FRAME_HEIGHT,480)
+vs.set(cv2.CAP_PROP_FPS, 30)
 
 # initialize our video writer
 ind_video = 1
@@ -54,9 +54,9 @@ def detect_motion(frameCount):
 			break
 		frame = cv2.flip(frame, 0)
 
-		frame2 = cv2.resize(frame, (640,480))
+		#frame2 = cv2.resize(frame, (640,480))
 
-		detectados, frame2 = md.get(frame2)
+		detectados, frame2 = md.get(frame)
 
 		if con_video:
 			if detectados > 0: 
