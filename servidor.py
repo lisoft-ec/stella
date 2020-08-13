@@ -11,7 +11,7 @@ import datetime
 import time
 import cv2
 
-con_video = 1
+con_video = 0
 # initialize the output frame and a lock used to ensure thread-safe
 # exchanges of the output frames (useful for multiple browsers/tabs
 # are viewing tthe stream)
@@ -24,11 +24,11 @@ app = Flask(__name__)
 # initialize the video stream and allow the camera sensor to
 # warmup
 
-video = 0 # "/home/mendel/contador/demo/entrada002.webm"
+video = "/home/mendel/out_1.avi"
 vs = cv2.VideoCapture(video, cv2.CAP_V4L)
-vs.set(cv2.CAP_PROP_FRAME_WIDTH,1920)
-vs.set(cv2.CAP_PROP_FRAME_HEIGHT,1080)
-vs.set(cv2.CAP_PROP_FPS, 30)
+#vs.set(cv2.CAP_PROP_FRAME_WIDTH,1920)
+#vs.set(cv2.CAP_PROP_FRAME_HEIGHT,1080)
+#vs.set(cv2.CAP_PROP_FPS, 30)
 
 # initialize our video writer
 ind_video = 1
