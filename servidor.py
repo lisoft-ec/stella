@@ -52,7 +52,7 @@ def detect_motion(frameCount):
 		(grabbed, frame) = vs.read()
 		if not grabbed:
 			break
-		frame = cv2.flip(frame, 0)
+		#frame = cv2.flip(frame, 0)
 
 		#frame2 = cv2.resize(frame, (640,480))
 
@@ -87,7 +87,7 @@ def detect_motion(frameCount):
 			"%d/%m/%Y %I:%M:%S%p"), (150, frame2.shape[0] - 10),
 			cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 1)
 		#if con_video: writer.write(frame2)
-		#time.sleep(0.03)
+		time.sleep(0.03)
 
 		# if the total number of frames has reached a sufficient
 		# number to construct a reasonable background model, then
