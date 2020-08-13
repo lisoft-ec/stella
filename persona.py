@@ -30,17 +30,18 @@ class Persona:
     
     def update(self, rect, piso):  
         umbral = int((piso[1] + piso[3]) / 2)
+        umbral2 = umbral #int((piso[1] + piso[3]) / 2.7)
 
-        #print("UMBRAL: ", self.p_id, rect[3], umbral, self.rect[3])
+        print("UMBRAL: ", self.p_id, rect[3], umbral, umbral2, self.rect[3])
 
         if rect[3] >= umbral and self.rect[3] < umbral:
             self.entra += 1
             self.color = (0,255,0)
 
-        if rect[3] < umbral and self.rect[3] >= umbral:
+        if rect[3] < umbral2 and self.rect[3] >= umbral2:
             self.sale += 1
             self.color = (0,255,255)
-            
+
         self.rect = rect
         self.activa = 1                
         #self.puntos.append(pto)
@@ -78,11 +79,13 @@ class Persona:
         return iou
 
     
+    
     @staticmethod
     def clear():
         for p in Persona.personas:            
             Persona.personas.remove(p)
             del p
+
 
     @staticmethod
     def asociar_objetos_rect(detectados, piso):
@@ -94,11 +97,16 @@ class Persona:
             print()
             print("Detectadas:", len(detectados), "Existen: ", len(Persona.personas))
 
-        for d in detectados:            
+        for d in detectados:     
+            cuerpo = d['hist']            
+            
+
             candidatos = []
             for p in Persona.personas:
                 if p.usada:
                     continue
+
+                #cv2.compareHist(cuerpo, p.histo, cv2.HISTCMP_CORREL)
 
                 factor = Persona.intersection_over_union(d['rect'], p.rect)
                 if factor > 0.4:
