@@ -20,11 +20,11 @@ video =  "/home/almustafa/Vídeos/local01.mp4" # "/dev/video0"
 
 # udevadm info --query=all --name=/dev/mmcblk0
 
-#corte = (200, 0, 1700, 950)
-#piso = (500,600,1000,900)
+corte = (100, 50, 500, 450)
+piso = (120,180,300,330)
             
-corte = (400, 200, 1600, 1080)
-piso = (400,600,800,800)
+#corte = (400, 50, 1600, 1080)
+#piso = (350,400,800,900)
 
 TRANSPARENCIA = 0.3
 ninguno = 0
@@ -141,7 +141,7 @@ class DetectorPersonas:
          
     frame = Persona.dibujar(frame, piso, TRANSPARENCIA)
 
-    return len(objs), frame
+    return len(objs), len(detectados), frame
 
 
 if __name__ == '__main__':

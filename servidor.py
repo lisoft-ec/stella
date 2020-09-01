@@ -1,7 +1,11 @@
 # USAGE
 # python webstreaming.py --ip 0.0.0.0 --port 8000
 
+
 # import the necessary packages
+import os
+from periphery import GPIO
+from periphery import PWM
 from deteccion import DetectorPersonas
 from flask import Response
 from flask import Flask
@@ -10,6 +14,19 @@ import threading
 import datetime
 import time
 import cv2
+
+ledR = GPIO(138, "out")
+ledG = GPIO(6, "out")
+ledB = GPIO(73, "out")
+
+ledB.write(True)
+
+temp_cmd = 'cat /sys/class/thermal/thermal_zone0/temp'
+
+def setLED(r,g,b):
+	ledR.write(r == 1)
+	ledG.write(g == 1)
+	ledB.write(b == 1)
 
 con_video = 0
 # initialize the output frame and a lock used to ensure thread-safe
@@ -24,15 +41,26 @@ app = Flask(__name__)
 # initialize the video stream and allow the camera sensor to
 # warmup
 
-video = "/home/mendel/out_1.avi"
+video = 0 # "/home/mendel/out_1.avi"
 vs = cv2.VideoCapture(video, cv2.CAP_V4L)
-#vs.set(cv2.CAP_PROP_FRAME_WIDTH,1920)
-#vs.set(cv2.CAP_PROP_FRAME_HEIGHT,1080)
-#vs.set(cv2.CAP_PROP_FPS, 30)
+vs.set(cv2.CAP_PROP_FRAME_WIDTH,640)
+vs.set(cv2.CAP_PROP_FRAME_HEIGHT,480)
+vs.set(cv2.CAP_PROP_FPS, 30)
+
+AF_SYSFS_NODE = '/sys/module/ov5645_camera_mipi_v2/parameters/ov5645_af'
+
+setLED(1,0,0)
+time.sleep(1.0)
+setLED(0,1,0)
+time.sleep(1.0)
+setLED(0,0,1)
+time.sleep(1.0)
+setLED(0,0,0)
 
 # initialize our video writer
 ind_video = 1
-time.sleep(1.0)
+
+sysfs = open(AF_SYSFS_NODE, 'w+')
 
 @app.route("/")
 def index():
@@ -47,16 +75,30 @@ def detect_motion(frameCount):
 	grabando = 0
 	writer = False
 
+	
+	primer=True
+
 	# loop over frames from the video stream
 	while True:
 		(grabbed, frame) = vs.read()
 		if not grabbed:
 			break
-		#frame = cv2.flip(frame, 0)
+		
+		if primer:
+			sysfs.write('1')
+			sysfs.flush()
+			primer=False
 
-		#frame2 = cv2.resize(frame, (640,480))
+		frame = cv2.flip(frame, 0) # invertir imagen
 
-		detectados, frame2 = md.get(frame)
+#		frame = cv2.resize(frame, (640,480))
+
+		_, detectados, frame2 = md.get(frame)
+
+		if detectados > 0:
+			setLED(0,1,0)
+		else:
+			setLED(0,0,0)
 
 		if con_video:
 			if detectados > 0: 
@@ -65,7 +107,7 @@ def detect_motion(frameCount):
 					fourcc =  cv2.VideoWriter_fourcc(*"XVID")
 					writer = cv2.VideoWriter("out_%s.avi" % ind_video, fourcc, 15, (1920, 1080), True)
 					ind_video += 1
-				
+
 				grabando = 45
 				writer.write(frame)
 			else:
@@ -78,16 +120,21 @@ def detect_motion(frameCount):
 						writer.release()
 					else:
 						writer.write(frame)
-				
-
 
 		# grab the current timestamp and draw it on the frame
-		timestamp = datetime.datetime.now()
-		cv2.putText(frame2, timestamp.strftime( 
-			"%d/%m/%Y %I:%M:%S%p"), (150, frame2.shape[0] - 10),
-			cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 1)
+		timestamp = datetime.datetime.now()	
+		str_time = timestamp.strftime("%d/%m/%Y %I:%M:%S%p")
+		cv2.putText(frame2, str_time, (150, frame2.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 3)
+		cv2.putText(frame2, str_time, (150, frame2.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 1)
+
+		# leer temperatura
+		temperatura = os.popen(temp_cmd).readline().strip()
+		temperatura = temperatura[:-3] if len(temperatura) > 3 else temperatura
+		cv2.putText(frame2, temperatura + " C", (20, frame2.shape[0] - 10),
+			cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+
 		#if con_video: writer.write(frame2)
-		time.sleep(0.03)
+		#time.sleep(0.03)
 
 		# if the total number of frames has reached a sufficient
 		# number to construct a reasonable background model, then
@@ -146,3 +193,4 @@ if __name__ == '__main__':
 # release the video stream pointer
 vs.release()
 cv2.destroyAllWindows() 
+sysfs.close()
