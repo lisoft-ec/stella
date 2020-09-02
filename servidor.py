@@ -3,32 +3,18 @@
 
 
 # import the necessary packages
+from comun import GoogleCoral
 import os
-from periphery import GPIO
-from periphery import PWM
 from deteccion import DetectorPersonas
-from flask import Response
-from flask import Flask
-from flask import render_template
+from flask import Flask, Response, request, render_template
+import configparser
 import threading
 import datetime
 import time
 import cv2
+import numpy as np
 
-ledR = GPIO(138, "out")
-ledG = GPIO(6, "out")
-ledB = GPIO(73, "out")
 
-ledB.write(True)
-
-temp_cmd = 'cat /sys/class/thermal/thermal_zone0/temp'
-
-def setLED(r,g,b):
-	ledR.write(r == 1)
-	ledG.write(g == 1)
-	ledB.write(b == 1)
-
-con_video = 0
 # initialize the output frame and a lock used to ensure thread-safe
 # exchanges of the output frames (useful for multiple browsers/tabs
 # are viewing tthe stream)
@@ -38,39 +24,65 @@ lock = threading.Lock()
 # initialize a flask object
 app = Flask(__name__)
 
-# initialize the video stream and allow the camera sensor to
-# warmup
+# Iniciar hardware (Leds, temp)
+hw = GoogleCoral()
 
-video = 0 # "/home/mendel/out_1.avi"
+# Iniciar Archivo de configuraciones
+config = configparser.ConfigParser()
+config.read('/home/mendel/configuraciones.ini')
+
+# Iniciar CAMARA
+con_video = config['CAMARA']['GRABAR'] == "SI"
+video = config['CAMARA']['ORIGEN']
+if video.isdigit:
+	video = int(video)
+
 vs = cv2.VideoCapture(video, cv2.CAP_V4L)
-vs.set(cv2.CAP_PROP_FRAME_WIDTH,640)
-vs.set(cv2.CAP_PROP_FRAME_HEIGHT,480)
-vs.set(cv2.CAP_PROP_FPS, 30)
+vs.set(cv2.CAP_PROP_FRAME_WIDTH, int(config['CAMARA']['WIDTH']))
+vs.set(cv2.CAP_PROP_FRAME_HEIGHT, int(config['CAMARA']['HEIGHT']))
+vs.set(cv2.CAP_PROP_FPS, int(config['CAMARA']['FPS']))
 
 AF_SYSFS_NODE = '/sys/module/ov5645_camera_mipi_v2/parameters/ov5645_af'
+sysfs = open(AF_SYSFS_NODE, 'w+')
 
-setLED(1,0,0)
-time.sleep(1.0)
-setLED(0,1,0)
-time.sleep(1.0)
-setLED(0,0,1)
-time.sleep(1.0)
-setLED(0,0,0)
+# Led de inicio
+for i in range(3):
+    hw.setLED(1,1,1)
+    time.sleep(0.1)
+    hw.setLED(0,0,0)
+    time.sleep(0.1)
 
 # initialize our video writer
 ind_video = 1
 
-sysfs = open(AF_SYSFS_NODE, 'w+')
 
 @app.route("/")
 def index():
 	# return the rendered template
-	return render_template("index.html")
+	return render_template("index.html", defcorte = config['DETECTOR']['corte'], defpiso = config['DETECTOR']['piso'], defpass="", defmsg="")
+
+@app.route('/', methods=['POST'])
+def my_form_post():
+	password = request.form['fpass']	
+	msg = ""
+	if password == "steLLa030":
+		text = request.form['fcorte']	
+		config['DETECTOR']['corte'] = text
+
+		text = request.form['fpiso']	
+		config['DETECTOR']['piso'] = text
+
+		with open('/home/mendel/configuraciones.ini', 'w') as configfile:
+			config.write(configfile)
+	else:
+		msg = "Contraseña NO válida!"
+
+	return render_template("index.html", defcorte = config['DETECTOR']['corte'], defpiso = config['DETECTOR']['piso'], defpass=password, defmsg=msg)
 
 def detect_motion(frameCount):
 	global vs, outputFrame, lock, ind_video
 
-	md = DetectorPersonas()
+	md = DetectorPersonas(config = config, threshold = float(config['DETECTOR']['threshold']), max_objetos = int(config['DETECTOR']['max_objetos']))
 	total = 0
 	grabando = 0
 	writer = False
@@ -96,9 +108,9 @@ def detect_motion(frameCount):
 		_, detectados, frame2 = md.get(frame)
 
 		if detectados > 0:
-			setLED(0,1,0)
+			hw.setLED(0,1,0)
 		else:
-			setLED(0,0,0)
+			hw.setLED(0,0,0)
 
 		if con_video:
 			if detectados > 0: 
@@ -121,25 +133,24 @@ def detect_motion(frameCount):
 					else:
 						writer.write(frame)
 
-		# grab the current timestamp and draw it on the frame
-		timestamp = datetime.datetime.now()	
-		str_time = timestamp.strftime("%d/%m/%Y %I:%M:%S%p")
-		cv2.putText(frame2, str_time, (150, frame2.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 3)
-		cv2.putText(frame2, str_time, (150, frame2.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 1)
+		# Crear cuadrado oscuro inferior
+		x, y, w, h = 0, frame2.shape[0] - 25, frame2.shape[1], 25
+		sub_img = frame2[y:y+h, x:x+w]
+		black_rect = np.zeros(sub_img.shape, dtype=np.uint8)
+		res = cv2.addWeighted(sub_img, 0.3, black_rect, 0.7, 1.0)
+		frame2[y:y+h, x:x+w] = res
 
-		# leer temperatura
-		temperatura = os.popen(temp_cmd).readline().strip()
-		temperatura = temperatura[:-3] if len(temperatura) > 3 else temperatura
-		cv2.putText(frame2, temperatura + " C", (20, frame2.shape[0] - 10),
-			cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+		# Poner fecha y hora
+		timestamp = datetime.datetime.now()	
+		str_time = timestamp.strftime("%d/%m/%Y %I:%M:%S %p")		
+		cv2.putText(frame2, str_time, (10, frame2.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (215, 231, 106), 1)
+
+		# Poner temperatura
+		temperatura = hw.leer_temperatura()
+		cv2.putText(frame2, temperatura + " C", (frame2.shape[1] - 50, frame2.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (16, 230, 231), 1)
 
 		#if con_video: writer.write(frame2)
 		#time.sleep(0.03)
-
-		# if the total number of frames has reached a sufficient
-		# number to construct a reasonable background model, then
-		# continue to process the frame
-		total += 1
 
 		# acquire the lock, set the output frame, and release the
 		# lock
@@ -174,8 +185,6 @@ def generate():
 
 @app.route("/video_feed")
 def video_feed():
-	# return the response generated along with the specific media
-	# type (mime type)
 	return Response(generate(),
 		mimetype = "multipart/x-mixed-replace; boundary=frame")
 

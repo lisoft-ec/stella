@@ -9,6 +9,7 @@ from PIL import Image
 import numpy as np
 import datetime
 from persona import Persona
+import configparser
 
 import odoorpc
 
@@ -19,9 +20,6 @@ modelo_seg = "models/deeplabv3_mnv2_dm05_pascal_quant_edgetpu.tflite"
 video =  "/home/almustafa/Vídeos/local01.mp4" # "/dev/video0"
 
 # udevadm info --query=all --name=/dev/mmcblk0
-
-corte = (100, 50, 500, 450)
-piso = (120,180,300,330)
             
 #corte = (400, 50, 1600, 1080)
 #piso = (350,400,800,900)
@@ -33,7 +31,8 @@ ninguno = 0
 
 class DetectorPersonas:
 
-  def __init__(self, threshold = 0.5, max_objetos = 10):
+  def __init__(self, config = False, threshold = 0.5, max_objetos = 10):
+    self.config = config
     self.threshold = threshold
     self.max_objetos = max_objetos
     self.engine = DetectionEngine(modelo)   
@@ -42,6 +41,19 @@ class DetectorPersonas:
     self.engine_seg = BasicEngine(modelo_seg)
     self.movimiento = cv2.createBackgroundSubtractorKNN()
     self.kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(9,9))
+
+    # self.corte = []
+    # self.corte.append()
+
+  def get_corte(self):
+    txt = self.config['DETECTOR']['corte']
+    txt = txt.split(',')
+    return (int(txt[0]), int(txt[1]), int(txt[2]), int(txt[3]))
+
+  def get_piso(self):
+    txt = self.config['DETECTOR']['piso']
+    txt = txt.split(',')
+    return (int(txt[0]), int(txt[1]), int(txt[2]), int(txt[3]))
 
   def histograma(self, img):
       image = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -93,6 +105,9 @@ class DetectorPersonas:
  
   def get(self, frame):
     global ninguno
+
+    corte = self.get_corte()
+    piso = self.get_piso()
 
     frame = frame[corte[1]:corte[3], corte[0]:corte[2]]    
 
