@@ -2,6 +2,7 @@ import compileall
 import os
 import glob
 import shutil
+import comun
 
 
 rootdir = "/home/mendel/coral_contador/"
@@ -22,11 +23,14 @@ if res:
             destino = filename.replace(rootdir, destdir)
             os.makedirs(os.path.dirname(destino), exist_ok=True)
             print("Creando: " , destino)
-            shutil.move(filename, destino)
+            if filename.endswith(".pyc"):
+                shutil.move(filename, destino)
+            else:
+                shutil.copy(filename, destino)
     
     #Subir cambios
     os.system("git -C %s add ." % destdir)
-    os.system("git -C %s commit -m \"%s\"" % (destdir, "Subir a Produccion"))
+    os.system("git -C %s commit -m \"%s\"" % (destdir, "Produccion: " + comun.__VERSION__))
     os.system("git -C %s push" % destdir)
             
 

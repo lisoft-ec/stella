@@ -1,6 +1,8 @@
 import os
 from periphery import GPIO
 
+__VERSION__ = "0.1.0"
+
 class GoogleCoral:	
 	def __init__(self):
 		#print("Constructor")

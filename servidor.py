@@ -4,6 +4,7 @@
 
 # import the necessary packages
 from comun import GoogleCoral
+import comun
 import os
 from deteccion import DetectorPersonas
 from flask import Flask, Response, request, render_template
@@ -59,7 +60,7 @@ ind_video = 1
 @app.route("/")
 def index():
 	# return the rendered template
-	return render_template("index.html", defcorte = config['DETECTOR']['corte'], defpiso = config['DETECTOR']['piso'], defpass="", defmsg="")
+	return render_template("index.html", defcorte = config['DETECTOR']['corte'], defpiso = config['DETECTOR']['piso'], defpass="", defmsg="", defversion= comun.__VERSION__)
 
 @app.route('/', methods=['POST'])
 def my_form_post():
@@ -77,7 +78,7 @@ def my_form_post():
 	else:
 		msg = "Contraseña NO válida!"
 
-	return render_template("index.html", defcorte = config['DETECTOR']['corte'], defpiso = config['DETECTOR']['piso'], defpass=password, defmsg=msg)
+	return render_template("index.html", defcorte = config['DETECTOR']['corte'], defpiso = config['DETECTOR']['piso'], defpass=password, defmsg=msg, defversion= comun.__VERSION__)
 
 def detect_motion(frameCount):
 	global vs, outputFrame, lock, ind_video
@@ -157,6 +158,7 @@ def detect_motion(frameCount):
 		with lock:
 			outputFrame = frame2.copy()
 #	writer.close()
+
 
 		
 def generate():
