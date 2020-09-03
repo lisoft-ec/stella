@@ -45,7 +45,7 @@ vs.set(cv2.CAP_PROP_FPS, int(config['CAMARA']['FPS']))
 
 AF_SYSFS_NODE = '/sys/module/ov5645_camera_mipi_v2/parameters/ov5645_af'
 sysfs = open(AF_SYSFS_NODE, 'w+')
-
+ 
 # Led de inicio
 for i in range(3):
     hw.setLED(1,1,1)
