@@ -148,7 +148,7 @@ def detect_motion(frameCount):
 		# Poner temperatura
 		temperatura = hw.leer_temperatura()
 		cv2.putText(frame2, temperatura + " C", (frame2.shape[1] - 50, frame2.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (16, 230, 231), 1)
-
+ 
 		#if con_video: writer.write(frame2)
 		#time.sleep(0.03)
 
