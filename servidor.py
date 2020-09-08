@@ -1,6 +1,7 @@
 # USAGE
 # python webstreaming.py --ip 0.0.0.0 --port 8000
 
+# Veamos
 
 # import the necessary packages
 from comun import GoogleCoral
@@ -85,7 +86,7 @@ def detect_motion(frameCount):
 
 	md = DetectorPersonas(config = config, threshold = float(config['DETECTOR']['threshold']), max_objetos = int(config['DETECTOR']['max_objetos']))
 	total = 0
-	grabando = 0
+	grabando = 0 
 	writer = False
 
 	

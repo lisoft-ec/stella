@@ -18,6 +18,7 @@ if res:
         if "__pycache__" not in filename and \
             not filename.endswith(".py") and \
             ".code-workspace" not in filename and \
+            ".vscode" not in filename and \
             "git" not in filename:
 
             destino = filename.replace(rootdir, destdir)

@@ -1,5 +1,6 @@
 import os
 from periphery import GPIO
+import time
 
 __VERSION__ = "0.1.0"
 
@@ -36,4 +37,15 @@ class GoogleCoral:
 		cmd = 'cat /sys/class/thermal/thermal_zone0/temp'
 		valor = os.popen(cmd).readline().strip()
 		valor = valor[:-3] if len(valor) > 3 else valor
+		return valor
+
+	def wifi_estado(self):
+		cmd = 'nmcli -t -f STATE general'
+		valor = os.popen(cmd).readline().strip()
+		return valor
+
+	def wifi_disponibles(self):
+		os.system("nmcli device wifi rescan")		
+		cmd = 'nmcli device wifi list'
+		valor = os.popen(cmd).readline().strip()
 		return valor
