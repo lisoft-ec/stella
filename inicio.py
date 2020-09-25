@@ -25,7 +25,7 @@ for i in range(2):
     time.sleep(delay / 5.0)
 
 
-stream = os.popen('git -C /home/mendel/coral_contador/ pull')
+stream = os.popen('git -C /home/mendel/stella/ pull')
 output = stream.read().strip()
 print(output)
 if output== "Already up to date.":

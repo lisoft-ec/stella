@@ -12,7 +12,7 @@ class GoogleCoral:
 		self.ledR = False
 		self.ledG = False
 		self.ledB = False
-		self.usuario_sistema = os.environ['USERNAME']
+		self.usuario_sistema = os.environ['USER']
 		
 
 	def __del__(self):
