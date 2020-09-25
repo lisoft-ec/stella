@@ -39,14 +39,14 @@ con_video = config['CAMARA']['GRABAR'] == "SI"
 video = config['CAMARA']['ORIGEN']
 if video.isdigit():
 	video = int(video)
-
-if video.lower().endswith(".mp4"):
-	vs = cv2.VideoCapture(video) 
-else:
 	vs = cv2.VideoCapture(video, cv2.CAP_V4L)
 	vs.set(cv2.CAP_PROP_FRAME_WIDTH, int(config['CAMARA']['WIDTH']))
 	vs.set(cv2.CAP_PROP_FRAME_HEIGHT, int(config['CAMARA']['HEIGHT']))
 	vs.set(cv2.CAP_PROP_FPS, int(config['CAMARA']['FPS']))
+
+else video.lower().endswith(".mp4"):
+	vs = cv2.VideoCapture(video) 
+	
 
 if usuario_sistema == 'mendel':
 	AF_SYSFS_NODE = '/sys/module/ov5645_camera_mipi_v2/parameters/ov5645_af'
