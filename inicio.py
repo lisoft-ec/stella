@@ -1,5 +1,6 @@
 from comun import GoogleCoral
 
+
 import os
 import time
 

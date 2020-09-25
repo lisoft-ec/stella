@@ -5,7 +5,7 @@
 		}
 	],
 	"settings": {
-		"python.pythonPath": "/home/almustafa/env_coral/bin/python3.7",
+		"python.pythonPath": "/bin/python",
 		"python.linting.pylintPath": "/home/almustafa/env_coral/bin/pylint",
 		"python.linting.pylintArgs": ["--generate-members"],
 	}

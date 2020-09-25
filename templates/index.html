@@ -1,14 +1,14 @@
 <html>
   <head>
     <title>SILTTEC Contador</title>
-      <link rel="shortcut icon" href="{{ url_for('static', filename='imgs/stella_favicon.png') }}">
-      <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='imgs/stella_favicon.png') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
   </head>
   <body>
     <div>
       <h1>Contador de Personas</h1>
       <h2>Version: {{ defversion }}</h2>
-      <img class="imagen" src="{{ url_for('video_feed') }}">
+      <img id="visor" class="imagen" src="{{ url_for('video_feed') }}">
     </div>
     <div class="login-box">
       <form method="POST">
@@ -28,5 +28,15 @@
         <input class="boton" type="submit" value="Aplicar">         
       </form>
     </div>
+    <script>
+      document.getElementById("visor").addEventListener('click', function (event) {    
+          var x = event.pageX - this.offsetLeft;
+          var y = event.pageY - this.offsetTop;
+          
+          alert("X Coordinate: " + x + " Y Coordinate: " + y);
+
+      }); 
+    </script>
+    
   </body>
 </html>

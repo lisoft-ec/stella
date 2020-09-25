@@ -1,6 +1,4 @@
 # sudo -H pip3 install numpy Pillow odoorpc
-
-
 import cv2
 
 from edgetpu.detection.engine import DetectionEngine, BasicEngine
@@ -13,32 +11,23 @@ import configparser
 
 import odoorpc
 
-modelo = "models/mobilenet_ssd_v2_coco_quant_postprocess_edgetpu.tflite"
-#modelo_seg = "models/deeplabv3_mnv2_pascal_quant_edgetpu.tflite"
-modelo_seg = "models/deeplabv3_mnv2_dm05_pascal_quant_edgetpu.tflite"
-
-video =  "/home/almustafa/Vídeos/local01.mp4" # "/dev/video0"
-
-# udevadm info --query=all --name=/dev/mmcblk0
-            
-#corte = (400, 50, 1600, 1080)
-#piso = (350,400,800,900)
-
-TRANSPARENCIA = 0.3
-ninguno = 0
-
-##########################################################
 
 class DetectorPersonas:
+
+  modelo = "models/mobilenet_ssd_v2_coco_quant_postprocess_edgetpu.tflite"
+  modelo_seg = "models/deeplabv3_mnv2_dm05_pascal_quant_edgetpu.tflite"
+
+  TRANSPARENCIA = 0.3
+  ninguno = 0
 
   def __init__(self, config = False, threshold = 0.5, max_objetos = 10):
     self.config = config
     self.threshold = threshold
     self.max_objetos = max_objetos
-    self.engine = DetectionEngine(modelo)   
+    self.engine = DetectionEngine(self.modelo)   
     _, self.H, self.W, _ = self.engine.get_input_tensor_shape()
 
-    self.engine_seg = BasicEngine(modelo_seg)
+    self.engine_seg = BasicEngine(self.modelo_seg)
     self.movimiento = cv2.createBackgroundSubtractorKNN()
     self.kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(9,9))
 
@@ -154,58 +143,6 @@ class DetectorPersonas:
     
     Persona.asociar_objetos_rect(detectados, piso)
          
-    frame = Persona.dibujar(frame, piso, TRANSPARENCIA)
+    frame = Persona.dibujar(frame, piso, self.TRANSPARENCIA)
 
     return len(objs), len(detectados), frame
-
-
-if __name__ == '__main__':
-
-  print("**********INICIANDO*************")
-
-  vs = cv2.VideoCapture(video)
-  
-
-  print("OPENCV version: ", cv2.__version__)
-
-  obj = DetectorPersonas()
-
-  primer = True
-
-  cont = 1
-
-  offset = 300
-  
-  fourcc =  cv2.VideoWriter_fourcc(*"XVID")
-  writer = cv2.VideoWriter("/home/almustafa/Vídeos/salida1.avi", fourcc, 15, (960,540), True)
-
-  while True:
-    (grabbed, frame) = vs.read()     
-    
-    if not grabbed:
-      break
-
-    #if cont >= offset:
-    #frame = cv2.resize(frame, (640,480))
-    _, frame2 = obj.get(frame)
-
-    frame[corte[1]:corte[3], corte[0]:corte[2]] = frame2
-
-    frame2 = cv2.resize(frame2, (960,540))
-    writer.write(frame2)
-    #cv2.imshow("Frame", frame2)
-    #cv2.imshow("Frame2", frame2)
-
-    print("FRAME: ", cont)      
-
-    key = cv2.waitKey(100) & 0xFF   
-    if key == ord("q"):
-      break   
-
-    cont+=1
-
-  writer.release()
-  vs.release()
-  cv2.destroyAllWindows()    
-
-  print("*************FIN****************")

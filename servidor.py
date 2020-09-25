@@ -15,7 +15,8 @@ import datetime
 import time
 import cv2
 import numpy as np
-
+ 
+usuario_sistema = os.environ['USERNAME']
 
 # initialize the output frame and a lock used to ensure thread-safe
 # exchanges of the output frames (useful for multiple browsers/tabs
@@ -31,28 +32,32 @@ hw = GoogleCoral()
 
 # Iniciar Archivo de configuraciones
 config = configparser.ConfigParser()
-config.read('/home/mendel/configuraciones.ini')
+config.read('../configuraciones.ini')
 
 # Iniciar CAMARA
 con_video = config['CAMARA']['GRABAR'] == "SI"
 video = config['CAMARA']['ORIGEN']
-if video.isdigit:
+if video.isdigit():
 	video = int(video)
 
-vs = cv2.VideoCapture(video, cv2.CAP_V4L)
-vs.set(cv2.CAP_PROP_FRAME_WIDTH, int(config['CAMARA']['WIDTH']))
-vs.set(cv2.CAP_PROP_FRAME_HEIGHT, int(config['CAMARA']['HEIGHT']))
-vs.set(cv2.CAP_PROP_FPS, int(config['CAMARA']['FPS']))
+if video.lower().endswith(".mp4"):
+	vs = cv2.VideoCapture(video) 
+else:
+	vs = cv2.VideoCapture(video, cv2.CAP_V4L)
+	vs.set(cv2.CAP_PROP_FRAME_WIDTH, int(config['CAMARA']['WIDTH']))
+	vs.set(cv2.CAP_PROP_FRAME_HEIGHT, int(config['CAMARA']['HEIGHT']))
+	vs.set(cv2.CAP_PROP_FPS, int(config['CAMARA']['FPS']))
 
-AF_SYSFS_NODE = '/sys/module/ov5645_camera_mipi_v2/parameters/ov5645_af'
-sysfs = open(AF_SYSFS_NODE, 'w+')
+if usuario_sistema == 'mendel':
+	AF_SYSFS_NODE = '/sys/module/ov5645_camera_mipi_v2/parameters/ov5645_af'
+	sysfs = open(AF_SYSFS_NODE, 'w+')
 
-# Led de inicio
-for i in range(3):
-    hw.setLED(1,1,1)
-    time.sleep(0.1)
-    hw.setLED(0,0,0)
-    time.sleep(0.1)
+	# Led de inicio
+	for i in range(3):
+		hw.setLED(1,1,1)
+		time.sleep(0.1)
+		hw.setLED(0,0,0)
+		time.sleep(0.1)
 
 # initialize our video writer
 ind_video = 1
@@ -88,8 +93,7 @@ def detect_motion(frameCount):
 	total = 0
 	grabando = 0 
 	writer = False
-
-	
+		
 	primer=True
 
 	# loop over frames from the video stream
@@ -98,7 +102,7 @@ def detect_motion(frameCount):
 		if not grabbed:
 			break
 		
-		if primer:
+		if primer and usuario_sistema == 'mendel':
 			sysfs.write('1')
 			sysfs.flush()
 			primer=False
@@ -205,4 +209,5 @@ if __name__ == '__main__':
 # release the video stream pointer
 vs.release()
 cv2.destroyAllWindows() 
-sysfs.close()
+if usuario_sistema == 'mendel': 
+	sysfs.close()
