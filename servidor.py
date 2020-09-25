@@ -16,7 +16,7 @@ import time
 import cv2
 import numpy as np
  
-usuario_sistema = os.environ['USERNAME']
+usuario_sistema = os.environ['USER']
 
 # initialize the output frame and a lock used to ensure thread-safe
 # exchanges of the output frames (useful for multiple browsers/tabs
