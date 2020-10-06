@@ -8,7 +8,7 @@ class Persona:
     p_id = "P001"
     m_registro = False
 
-    def __init__(self, rect, img=None):
+    def __init__(self, rect, img=None, evt_cambio=None):
         super().__init__()
         p_id = Persona.p_id
         self.p_id = p_id
@@ -23,6 +23,7 @@ class Persona:
         self.usada = 1
         self.sale = 0
         self.entra = 0
+        self.evt_cambio = evt_cambio
         
         self.color = (100,100,100)  
                                 
@@ -37,10 +38,14 @@ class Persona:
         if rect[3] >= umbral and self.rect[3] < umbral:
             self.entra += 1
             self.color = (0,255,0)
+            if self.evt_cambio is not None:
+                self.evt_cambio("entra")                
 
         if rect[3] < umbral2 and self.rect[3] >= umbral2:
             self.sale += 1
             self.color = (0,255,255)
+            if self.evt_cambio is not None:
+                self.evt_cambio("sale")
 
         self.rect = rect
         self.activa = 1                
@@ -88,7 +93,7 @@ class Persona:
 
 
     @staticmethod
-    def asociar_objetos_rect(detectados, piso):
+    def asociar_objetos_rect(detectados, piso, evt_cambio=None):
         resultado = ""
         for p in Persona.personas:
             p.usada = 0
@@ -98,8 +103,7 @@ class Persona:
             print("Detectadas:", len(detectados), "Existen: ", len(Persona.personas))
 
         for d in detectados:     
-            cuerpo = d['hist']            
-            
+            cuerpo = d['hist']     
 
             candidatos = []
             for p in Persona.personas:
@@ -107,7 +111,6 @@ class Persona:
                     continue
 
                 #cv2.compareHist(cuerpo, p.histo, cv2.HISTCMP_CORREL)
-
                 factor = Persona.intersection_over_union(d['rect'], p.rect)
                 if factor > 0.4:
                     candidatos.append({
@@ -117,7 +120,7 @@ class Persona:
             
             if len(candidatos)==0:
                 print("Creando persona")
-                ps = Persona(d['rect'])
+                ps = Persona(d['rect'], evt_cambio=evt_cambio)
 
             elif len(candidatos) > 0:
                 maximo = 0

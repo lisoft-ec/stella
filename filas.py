@@ -24,7 +24,7 @@ class FilasPersonas:
     self.config = config
     self.threshold = threshold
     self.max_objetos = max_objetos
-    self.engine = DetectionEngine(self.modelo)   
+    self.engine = DetectionEngine(self.modelo)
     _, self.H, self.W, _ = self.engine.get_input_tensor_shape()
     self.zonas = []
 

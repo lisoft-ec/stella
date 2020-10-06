@@ -37,6 +37,9 @@ config.read('../configuraciones.ini')
 # Iniciar CAMARA
 con_video = config['CAMARA']['GRABAR'] == "SI"
 video = config['CAMARA']['ORIGEN']
+flipX = config['CAMARA']['flipX'] == "True"
+flipY = config['CAMARA']['flipY'] == "True"
+
 
 if video.lower().endswith(".mp4"):
 	vs = cv2.VideoCapture(video) 
@@ -47,8 +50,6 @@ else:
 	vs.set(cv2.CAP_PROP_FRAME_WIDTH, int(config['CAMARA']['WIDTH']))
 	vs.set(cv2.CAP_PROP_FRAME_HEIGHT, int(config['CAMARA']['HEIGHT']))
 	vs.set(cv2.CAP_PROP_FPS, int(config['CAMARA']['FPS']))
-
-	
 
 if usuario_sistema == 'mendel':
 	AF_SYSFS_NODE = '/sys/module/ov5645_camera_mipi_v2/parameters/ov5645_af'
@@ -65,13 +66,27 @@ if usuario_sistema == 'mendel':
 ind_video = 1
 
 
+def evento_cambio(valor):	
+	global usuario_sistema
+	if usuario_sistema == 'mendel':
+		if valor == "entra":
+			print("Evento_Cambio: ", valor)
+			hw.setLED(0,1,0)
+		elif valor == "sale":
+			print("Evento_Cambio: ", valor)
+			hw.setLED(0,1,1)
+		else:
+			hw.setLED(0,0,0)
+
+
 @app.route("/")
-def index():
+def url_index():
 	# return the rendered template
 	return render_template("index.html", defcorte = config['DETECTOR']['corte'], defpiso = config['DETECTOR']['piso'], defpass="", defmsg="", defversion= comun.__VERSION__)
 
 @app.route('/', methods=['POST'])
-def my_form_post():
+def url_index_post():
+	print("ver index!")
 	password = request.form['fpass']	
 	msg = ""
 	if password == "steLLa030":
@@ -81,17 +96,17 @@ def my_form_post():
 		text = request.form['fpiso']	
 		config['DETECTOR']['piso'] = text
 
-		with open('/home/mendel/configuraciones.ini', 'w') as configfile:
+		with open('../configuraciones.ini', 'w') as configfile:
 			config.write(configfile)
 	else:
 		msg = "Contraseña NO válida!"
 
 	return render_template("index.html", defcorte = config['DETECTOR']['corte'], defpiso = config['DETECTOR']['piso'], defpass=password, defmsg=msg, defversion= comun.__VERSION__)
 
-def detect_motion(frameCount):
+def get_image(frameCount):
 	global vs, outputFrame, lock, ind_video
 
-	md = DetectorPersonas(config = config, threshold = float(config['DETECTOR']['threshold']), max_objetos = int(config['DETECTOR']['max_objetos']))
+	md = DetectorPersonas(config = config, threshold = float(config['DETECTOR']['threshold']), max_objetos = int(config['DETECTOR']['max_objetos']), evt_cambio=evento_cambio)
 	total = 0
 	grabando = 0 
 	writer = False
@@ -109,16 +124,12 @@ def detect_motion(frameCount):
 			sysfs.flush()
 			primer=False
 
-		frame = cv2.flip(frame, 0) # invertir imagen
+		if flipY:
+			frame = cv2.flip(frame, 0) # invertir imagen
 
-#		frame = cv2.resize(frame, (640,480))
+		# frame = cv2.resize(frame, (640,480))
 
-		_, detectados, frame2 = md.get(frame)
-
-		if detectados > 0:
-			hw.setLED(0,1,0)
-		else:
-			hw.setLED(0,0,0)
+		_, detectados, frame2 = md.get(frame)		
 
 		if con_video:
 			if detectados > 0: 
@@ -165,8 +176,6 @@ def detect_motion(frameCount):
 		with lock:
 			outputFrame = frame2.copy()
 #	writer.close()
-
-
 		
 def generate():
 	# grab global references to the output frame and lock variables
@@ -197,10 +206,15 @@ def video_feed():
 	return Response(generate(),
 		mimetype = "multipart/x-mixed-replace; boundary=frame")
 
+@app.route("/conexion")
+def conexion():
+	return render_template("conexion.html", defcorte = config['DETECTOR']['corte'], defpiso = config['DETECTOR']['piso'], defpass="", defmsg="", defversion= comun.__VERSION__)
+
+
 # check to see if this is the main thread of execution
 if __name__ == '__main__':
 	# start a thread that will perform motion detection
-	t = threading.Thread(target=detect_motion, args=(10,))
+	t = threading.Thread(target=get_image, args=(10,))
 	t.daemon = True
 	t.start()
 

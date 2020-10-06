@@ -29,13 +29,13 @@ class GoogleCoral:
 		config.read('../configuraciones.ini')
 		self.leds_on = int(config['GENERAL']['LEDS_ON'])
 
-		self.ledR = GPIO(138, "out")
-		self.ledG = GPIO(6, "out")
-		self.ledB = GPIO(73, "out")
-
 		self.ledR.write(self.leds_on == 0)
 		self.ledG.write(self.leds_on == 0)
 		self.ledB.write(self.leds_on == 0)
+
+		self.ledR = GPIO(138, "out")
+		self.ledG = GPIO(6, "out")
+		self.ledB = GPIO(73, "out")		
 
 	def setLED(self,r,g,b):
 		if self.usuario_sistema != 'mendel':

@@ -28,13 +28,15 @@
         <input class="boton" type="submit" value="Aplicar">         
       </form>
     </div>
+    <div class="login-box">
+      <a href="{{ url_for('conexion') }}" class="button">Conexiones</a>
+    </div>
     <script>
-      document.getElementById("visor").addEventListener('click', function (event) {    
+      document.getElementById("visor").addEventListener('mouseup', function (event) {    
           var x = event.pageX - this.offsetLeft;
           var y = event.pageY - this.offsetTop;
           
           alert("X Coordinate: " + x + " Y Coordinate: " + y);
-
       }); 
     </script>
     

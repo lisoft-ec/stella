@@ -17,6 +17,7 @@ import odoorpc
 TRANSPARENCIA = 0.3
 ninguno = 0
 
+
 refPt = []
 cropping = False
 def imagen_click(event, x, y, flags, param):

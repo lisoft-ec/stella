@@ -20,10 +20,11 @@ class DetectorPersonas:
   TRANSPARENCIA = 0.3
   ninguno = 0
 
-  def __init__(self, config = False, threshold = 0.5, max_objetos = 10):
+  def __init__(self, config = False, threshold = 0.5, max_objetos = 10, evt_cambio=None):
     self.config = config
     self.threshold = threshold
     self.max_objetos = max_objetos
+    self.evt_cambio = evt_cambio
     self.engine = DetectionEngine(self.modelo)   
     _, self.H, self.W, _ = self.engine.get_input_tensor_shape()
 
@@ -137,11 +138,14 @@ class DetectorPersonas:
         cuerpo = cv2.bitwise_and(frame, frame, mask=mov)
         cuerpo = frame[box[1]:box[3], box[0]:box[2]]
         d['hist'] = self.histograma(cuerpo)
+    else:
+      if self.evt_cambio is not None:
+        self.evt_cambio("nada")
 
             
       #frame = cv2.bitwise_and(frame, frame, mask=img_seg)
     
-    Persona.asociar_objetos_rect(detectados, piso)
+    Persona.asociar_objetos_rect(detectados, piso, evt_cambio=self.evt_cambio)
          
     frame = Persona.dibujar(frame, piso, self.TRANSPARENCIA)
 
