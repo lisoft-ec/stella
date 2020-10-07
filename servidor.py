@@ -34,12 +34,17 @@ hw = GoogleCoral()
 config = configparser.ConfigParser()
 config.read('../configuraciones.ini')
 
+# Segundos actuales
+tiempo = time.time()
+conexion_flag = False
+
 # Iniciar CAMARA
 con_video = config['CAMARA']['GRABAR'] == "SI"
 video = config['CAMARA']['ORIGEN']
 flipX = config['CAMARA']['flipX'] == "True"
 flipY = config['CAMARA']['flipY'] == "True"
-
+cap_w = int(config['CAMARA']['WIDTH'])
+cap_h = int(config['CAMARA']['HEIGHT'])
 
 if video.lower().endswith(".mp4"):
 	vs = cv2.VideoCapture(video) 
@@ -47,8 +52,8 @@ else:
 	if video.isdigit():
 		video = int(video)
 	vs = cv2.VideoCapture(video, cv2.CAP_V4L)
-	vs.set(cv2.CAP_PROP_FRAME_WIDTH, int(config['CAMARA']['WIDTH']))
-	vs.set(cv2.CAP_PROP_FRAME_HEIGHT, int(config['CAMARA']['HEIGHT']))
+	vs.set(cv2.CAP_PROP_FRAME_WIDTH, cap_w)
+	vs.set(cv2.CAP_PROP_FRAME_HEIGHT, cap_h)
 	vs.set(cv2.CAP_PROP_FPS, int(config['CAMARA']['FPS']))
 
 if usuario_sistema == 'mendel':
@@ -67,16 +72,15 @@ ind_video = 1
 
 
 def evento_cambio(valor):	
-	global usuario_sistema
-	if usuario_sistema == 'mendel':
-		if valor == "entra":
-			print("Evento_Cambio: ", valor)
-			hw.setLED(0,1,0)
-		elif valor == "sale":
-			print("Evento_Cambio: ", valor)
-			hw.setLED(0,1,1)
-		else:
-			hw.setLED(0,0,0)
+	global usuario_sistema	
+	if valor == "entra":
+		print("\n\nEvento_Cambio: ", valor, "\n\n")
+		hw.setLED(0,1,0) #verde
+	elif valor == "sale":
+		print("\n\nEvento_Cambio: ", valor, "\n\n")
+		hw.setLED(1,1,0) #amarillo
+	else:
+		hw.setLED(0,0,0)
 
 
 @app.route("/")
@@ -89,7 +93,7 @@ def url_index_post():
 	print("ver index!")
 	password = request.form['fpass']	
 	msg = ""
-	if password == "steLLa030":
+	if password == "steLLa":
 		text = request.form['fcorte']	
 		config['DETECTOR']['corte'] = text
 
@@ -118,16 +122,30 @@ def get_image(frameCount):
 		(grabbed, frame) = vs.read()
 		if not grabbed:
 			break
+
+		if not conexion_flag:
+			lapso_tiempo = time.time() - tiempo
+			if lapso_tiempo > 60:
+				conexion_flag = True
+				hw.conectar_wifi(config['CONEXION']['wifi'], config['CONEXION']['contrasena'])
 		
 		if primer and usuario_sistema == 'mendel':
 			sysfs.write('1')
 			sysfs.flush()
 			primer=False
 
-		if flipY:
-			frame = cv2.flip(frame, 0) # invertir imagen
+		if flipY and flipY:
+			frame = cv2.flip(frame, -1) 
+		elif flipX:
+			frame = cv2.flip(frame, 1)
+		elif flipY:
+			frame = cv2.flip(frame, 0)
 
-		# frame = cv2.resize(frame, (640,480))
+		#Resize si es necesario
+		h,w = frame.shape[:2]
+    	if w != cap_w or h != cap_h:
+        	frame = cv2.resize(frame, (cap_w, cap_h))
+		#
 
 		_, detectados, frame2 = md.get(frame)		
 

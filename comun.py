@@ -4,7 +4,7 @@ from periphery import GPIO
 import time
 import configparser
 
-__VERSION__ = "0.1.0"
+__VERSION__ = "0.1.1"
 
 class GoogleCoral:	
 	def __init__(self):
@@ -58,12 +58,49 @@ class GoogleCoral:
 		cmd = 'nmcli -t -f STATE general'
 		valor = os.popen(cmd).readline().strip()
 		return valor
+	
+	def conexiones_estado(self):
+		cmd = 'nmcli dev status'
+		valor = os.popen(cmd).readline().strip()
+		return valor
 
 	def wifi_disponibles(self):
 		os.system("nmcli device wifi rescan")		
 		cmd = 'nmcli device wifi list'
 		valor = os.popen(cmd).readline().strip()
 		return valor
+
+	def conectar_wifi(self, nombre, password):
+		if self.usuario_sistema != 'mendel':
+			return
+
+		cmd = 'nmcli device wifi connect "%s" password "%s"' % (nombre, password)
+		valor = os.popen(cmd).readline().strip()
+		return valor	
+	
+	def crear_wifi(self, nombre, password):
+		if self.usuario_sistema != 'mendel':
+			return
+
+		cmd = 'nmcli device wifi hotspot ifname wlan0 ssid "%" password "%"' % (nombre, password)
+		valor = os.popen(cmd).readline().strip()
+		return valor	
+
+		# direcion ip manual
+		# nmcli con mod eth0 ipv4.addresses 192.168.2.20/24
+		# nmcli con mod eth0 ipv4.gateway 192.168.2.1
+		# nmcli con mod eth0 ipv4.dns “8.8.8.8”
+		# nmcli con mod eth0 ipv4.method manual	
+		# nmcli con up eth0
+
+		# nmcli -g ip4.address connection show my-con-eth0
+
+		# leer direccion ip
+		# sudo nmcli connection show
+		# sudo nmcli connection show "Private" | grep address
+
+
+
 	
 	@staticmethod
 	def rounded_rectangle(src, top_left, bottom_right, radius=1, color=255, thickness=1, line_type=cv2.LINE_AA):
