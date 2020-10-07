@@ -108,7 +108,7 @@ def url_index_post():
 	return render_template("index.html", defcorte = config['DETECTOR']['corte'], defpiso = config['DETECTOR']['piso'], defpass=password, defmsg=msg, defversion= comun.__VERSION__)
 
 def get_image(frameCount):
-	global vs, outputFrame, lock, ind_video
+	global vs, outputFrame, lock, ind_video, conexion_flag
 
 	md = DetectorPersonas(config = config, threshold = float(config['DETECTOR']['threshold']), max_objetos = int(config['DETECTOR']['max_objetos']), evt_cambio=evento_cambio)
 	total = 0
