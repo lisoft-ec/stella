@@ -143,9 +143,9 @@ def get_image(frameCount):
 
 		#Resize si es necesario
 		h,w = frame.shape[:2]
-    	if w != cap_w or h != cap_h:
-        	frame = cv2.resize(frame, (cap_w, cap_h))
-		#
+		if w != cap_w or h != cap_h:
+			frame = cv2.resize(frame, (cap_w, cap_h))
+		###
 
 		_, detectados, frame2 = md.get(frame)		
 
