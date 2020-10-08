@@ -127,7 +127,8 @@ def get_image(frameCount):
 			lapso_tiempo = time.time() - tiempo
 			if lapso_tiempo > 60:
 				conexion_flag = True
-				hw.conectar_wifi(config['CONEXION']['wifi'], config['CONEXION']['contrasena'])
+				print("\n\nLuego de 60 segundos!\n\n")
+				#hw.conectar_wifi(config['CONEXION']['wifi'], config['CONEXION']['contrasena'])
 		
 		if primer and usuario_sistema == 'mendel':
 			sysfs.write('1')

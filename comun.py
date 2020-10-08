@@ -82,7 +82,7 @@ class GoogleCoral:
 		if self.usuario_sistema != 'mendel':
 			return
 
-		cmd = 'nmcli device wifi hotspot ifname wlan0 ssid "%s" password "%s"' % (nombre, password)
+		cmd = 'nmcli device wifi adhoc ifname wlan0 ssid "%s" password "%s"' % (nombre, password)
 		valor = os.popen(cmd).readline().strip()
 		return valor	
 
