@@ -29,11 +29,11 @@ class GoogleCoral:
 		config.read('../configuraciones.ini')
 		self.leds_on = int(config['GENERAL']['LEDS_ON'])
 		
-		self.ledR = GPIO(138, "out")		
+		self.ledR = GPIO(138, "out")
 		self.ledG = GPIO(6, "out")
-		self.ledB = GPIO(73, "out")	
+		self.ledB = GPIO(73, "out")
 
-		self.ledR.write(self.leds_on == 0)	
+		self.ledR.write(self.leds_on == 0)
 		self.ledG.write(self.leds_on == 0)
 		self.ledB.write(self.leds_on == 0)
 
@@ -82,9 +82,46 @@ class GoogleCoral:
 		if self.usuario_sistema != 'mendel':
 			return
 
-		cmd = 'nmcli device wifi adhoc ifname wlan0 ssid "%s" password "%s"' % (nombre, password)
+		cmd = 'nmcli device wifi hotspot ifname wlan0 autoconnect yes ssid "%s" password "%s"' % (nombre, password)
 		valor = os.popen(cmd).readline().strip()
 		return valor	
+
+	def coneccion_up(self, coneccion):
+		if self.usuario_sistema != 'mendel':
+			return
+
+		cmd = 'nmcli con up "%s"' % coneccion
+		valor = os.popen(cmd).readline().strip()
+		return valor	
+
+	def coneccion_down(self, coneccion):
+		if self.usuario_sistema != 'mendel':
+			return
+
+		cmd = 'nmcli con down "%s"' % coneccion
+		valor = os.popen(cmd).readline().strip()
+		return valor
+
+	def conecciones_guardadas(self):
+		cmd = 'nmcli con'
+		valores = os.popen(cmd).readlines()
+		nombres = {}
+		for v in valores:
+			v = v.strip().replace('  ', '|')
+			while True:
+				v2 = v.replace('||', '|')
+				if v2 == v:
+					break
+				else:
+					v = v2
+
+			pars = v.split('|')
+			if len(pars) > 1 and pars[1].strip() == "UUID":
+				continue
+
+			nombres[pars[0].strip()] = pars[2].strip()
+
+		return nombres
 
 		# direcion ip manual
 		# nmcli con mod eth0 ipv4.addresses 192.168.2.20/24
