@@ -82,23 +82,29 @@ class GoogleCoral:
 		if self.usuario_sistema != 'mendel':
 			return
 
-		cmd = 'nmcli device wifi hotspot ifname wlan0 ssid "%" password "%"' % (nombre, password)
+		cmd = 'nmcli device wifi hotspot ifname wlan0 ssid "%s" password "%s"' % (nombre, password)
 		valor = os.popen(cmd).readline().strip()
 		return valor	
 
 		# direcion ip manual
 		# nmcli con mod eth0 ipv4.addresses 192.168.2.20/24
 		# nmcli con mod eth0 ipv4.gateway 192.168.2.1
-		# nmcli con mod eth0 ipv4.dns “8.8.8.8”
+		# nmcli con mod eth0 ipv4.dns “8.8.8.8 8.4.4.8”
 		# nmcli con mod eth0 ipv4.method manual	
 		# nmcli con up eth0
 
-		# nmcli -g ip4.address connection show my-con-eth0
+		# nmcli -g ip4.address connection show STELLA
 
 		# leer direccion ip
 		# sudo nmcli connection show
 		# sudo nmcli connection show "Private" | grep address
 
+		# nmcli con
+		# nmcli con up STELLA
+		
+		# sudo ufw allow  67/udp
+		# sudo ufw reload
+		# sudo ufw show
 
 
 	

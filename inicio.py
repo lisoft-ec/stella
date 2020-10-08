@@ -25,7 +25,7 @@ for i in range(2):
     time.sleep(delay / 5.0)
 
 #Craer wifi
-hw.crear_wifi("StellaWIFI", "sTELLAwifi")
+#hw.crear_wifi("StellaWIFI", "sTELLAwifi")
 
 stream = os.popen('git -C /home/mendel/stella/ pull')
 output = stream.read().strip()
