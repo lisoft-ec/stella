@@ -82,8 +82,11 @@ class GoogleCoral:
 		if self.usuario_sistema != 'mendel':
 			return
 
-		cmd = 'nmcli device wifi hotspot ifname wlan0 autoconnect yes ssid "%s" password "%s"' % (nombre, password)
+		cmd = 'nmcli device wifi hotspot ifname wlan0 ssid "%s" password "%s"' % (nombre, password)
 		valor = os.popen(cmd).readline().strip()
+
+		cmd = 'nmcli device set ifname wlan0 autoconnect yes'
+		valor += "\n" + os.popen(cmd).readline().strip()
 		return valor	
 
 	def coneccion_up(self, coneccion):
