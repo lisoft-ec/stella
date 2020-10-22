@@ -25,15 +25,15 @@ for i in range(2):
     time.sleep(delay / 5.0)
 
 #Crear wifi
-conecciones = hw.conecciones_guardadas()
-if "StellaWIFI" not in conecciones.keys():
-    print("Crando a StellaWIFI")
-    res = hw.crear_wifi("StellaWIFI", "sTELLAwifi")
-    print(res)
+#conecciones = hw.conecciones_guardadas()
+#if "StellaWIFI" not in conecciones.keys():
+#    print("Crando a StellaWIFI")
+#    res = hw.crear_wifi("StellaWIFI", "sTELLAwifi")
+#    print(res)
 
-print("Conectando WIFI:")
-res = hw.coneccion_up("StellaWIFI")
-print(res)
+#print("Conectando WIFI:")
+#res = hw.coneccion_up("StellaWIFI")
+#print(res)
 
 stream = os.popen('git -C /home/mendel/stella/ pull')
 output = stream.read().strip()
