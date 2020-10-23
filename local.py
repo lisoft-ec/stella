@@ -11,7 +11,6 @@ import configparser
 from deteccion import DetectorPersonas
 from filas import FilasPersonas
 
-
 import odoorpc
      
 TRANSPARENCIA = 0.3

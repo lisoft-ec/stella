@@ -30,6 +30,9 @@ app = Flask(__name__)
 # Iniciar hardware (Leds, temp)
 hw = GoogleCoral()
 
+#Lector de codigos QR
+qr_detect = cv2.QRCodeDetector()
+
 # Iniciar Archivo de configuraciones
 config = configparser.ConfigParser()
 config.read('../configuraciones.ini')
@@ -111,7 +114,6 @@ def get_image(frameCount):
 	global vs, outputFrame, lock, ind_video, conexion_flag
 
 	md = DetectorPersonas(config = config, threshold = float(config['DETECTOR']['threshold']), max_objetos = int(config['DETECTOR']['max_objetos']), evt_cambio=evento_cambio)
-	total = 0
 	grabando = 0 
 	writer = False
 		
@@ -147,6 +149,9 @@ def get_image(frameCount):
 		if w != cap_w or h != cap_h:
 			frame = cv2.resize(frame, (cap_w, cap_h))
 		###
+
+		data, bbox, straight_qrcode = qr_detect.detectAndDecode(frame)
+		print("QR: " , data , '\n\n\n')
 
 		_, detectados, frame2 = md.get(frame)		
 
@@ -202,6 +207,8 @@ def generate():
 
 	# loop over frames from the output stream
 	while True:
+		time.sleep(1)
+
 		# wait until the lock is acquired
 		with lock:
 			# check if the output frame is available, otherwise skip
