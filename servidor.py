@@ -151,9 +151,16 @@ def get_image(frameCount):
 		###
 
 		data, bbox, straight_qrcode = qr_detect.detectAndDecode(frame)
-		print("QR: " , data , '\n\n\n')
+		if bbox is not None and len(data) > 0:
+			print("QR: " , data)
+			nrOfPoints = len(bbox)
+ 
+			for i in range(nrOfPoints):
+				nextPointIndex = (i+1) % nrOfPoints
+				cv2.line(frame, tuple(bbox[i][0]), tuple(bbox[nextPointIndex][0]), (255,0,0), 5)
 
-		_, detectados, frame2 = md.get(frame)		
+		#_, detectados, frame2 = md.get(frame)		
+		detectados, frame2 = (0, frame)
 
 		if con_video:
 			if detectados > 0: 
@@ -207,7 +214,7 @@ def generate():
 
 	# loop over frames from the output stream
 	while True:
-		time.sleep(1)
+		#time.sleep(1)
 
 		# wait until the lock is acquired
 		with lock:
