@@ -216,7 +216,7 @@ def generate():
 
 	# loop over frames from the output stream
 	while True:
-		#time.sleep(1)
+		time.sleep(1)
 
 		# wait until the lock is acquired
 		with lock:
