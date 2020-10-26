@@ -248,7 +248,7 @@ def conexion():
 
 # check to see if this is the main thread of execution
 if __name__ == '__main__':
-	# start a thread that will perform motion detection
+	# start a thread
 	t = threading.Thread(target=get_image, args=(10,))
 	t.daemon = True
 	t.start()
@@ -259,6 +259,6 @@ if __name__ == '__main__':
 
 # release the video stream pointer
 vs.release()
-cv2.destroyAllWindows() 
-if usuario_sistema == 'mendel': 
+cv2.destroyAllWindows()
+if usuario_sistema == 'mendel':
 	sysfs.close()
