@@ -5,12 +5,14 @@
 
 # import the necessary packages
 from comun import GoogleCoral
+import comun
 from camara import Camara
 import os
 from flask import Flask, Response, request, render_template
 import configparser
 import threading
 import time
+import cv2
  
 
 camara = Camara()
@@ -22,12 +24,13 @@ app = Flask(__name__)
 
 @app.route("/")
 def url_index():
-	# return the rendered template
+	config = camara.config
 	return render_template("index.html", defcorte = config['DETECTOR']['corte'], defpiso = config['DETECTOR']['piso'], defpass="", defmsg="", defversion= comun.__VERSION__)
 
 @app.route('/', methods=['POST'])
 def url_index_post():
 	print("ver index!")
+	config = camara.config
 	password = request.form['fpass']	
 	msg = ""
 	if password == "steLLa":
@@ -55,6 +58,7 @@ def generate():
 
 		# wait until the lock is acquired
 		with lock:
+			print("get lock")
 			# check if the output frame is available, otherwise skip
 			# the iteration of the loop
 			if outputFrame is None:
@@ -80,27 +84,29 @@ def video_feed():
 def conexion():
 	return render_template("conexion.html", defcorte = config['DETECTOR']['corte'], defpiso = config['DETECTOR']['piso'], defpass="", defmsg="", defversion= comun.__VERSION__)
 
+def get_image(frame_count):
+	print(frame_count)
+	global outputFrame, lock
+
+	while True:
+		frame = camara.procesar_imagen(True)
+		with lock:
+			print("set lock")
+			outputFrame = frame
+
 
 # check to see if this is the main thread of execution
 if __name__ == '__main__':
 	
-
-	while True:
-		camara.procesar_imagen(False)
-
-	#outputFrame = camara.procesar_imagen(True)
-	# start a thread that will perform motion detection
+	#while True:
+	#	camara.procesar_imagen(False)
 	
-	# t = threading.Thread(target=get_image, args=(10,))
-	# t.daemon = True
-	# t.start()
 
-	# # start the flask app
-	# app.run(host="0.0.0.0", port=7777, debug=False,
-	# 	threaded=True, use_reloader=False)
+	# start a thread that will perform motion detection	
+	t = threading.Thread(target=get_image, args=(10,))
+	t.daemon = True
+	t.start()
 
-# release the video stream pointer
-vs.release()
-cv2.destroyAllWindows() 
-if usuario_sistema == 'mendel': 
-	sysfs.close()
+	# start the flask app
+	app.run(host="0.0.0.0", port=7777, debug=False,
+		threaded=True, use_reloader=False)

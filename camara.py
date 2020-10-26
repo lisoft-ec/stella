@@ -17,7 +17,7 @@ class Camara():
         self.hw = GoogleCoral()
 
         # Iniciar Archivo de configuraciones
-        config = configparser.ConfigParser()
+        self.config = config = configparser.ConfigParser()
         config.read('../configuraciones.ini')
 
         # Iniciar CAMARA
@@ -67,6 +67,10 @@ class Camara():
         self.backSub = cv2.createBackgroundSubtractorMOG2()
         #self.backSub = cv.createBackgroundSubtractorKNN()
 
+    def __del__(self): 
+        print("Destructor")
+
+
     
     def evento_cambio(self, valor):	
         """
@@ -92,6 +96,7 @@ class Camara():
         if self.primer and self.is_coral:
             self.sysfs.write('1')
             self.sysfs.flush()
+            self.sysfs.close()
             self.primer=False
 
         if self.flipY and self.flipY:
@@ -161,6 +166,6 @@ class Camara():
                 self.writer.write(frame2)
                 #time.sleep(0.03)
 
-        print("Lapso [ms]: %0.1f | Temp: %i°" % ( lapso_ms * 1000.0, int(temperatura)))
+        #print("Lapso [ms]: %0.1f | Temp: %i°" % ( lapso_ms * 1000.0, int(temperatura)))
 
         return frame2

@@ -36,8 +36,6 @@ if "StellaWIFI" not in conecciones.keys():
     res = hw.crear_wifi("StellaWIFI", "sTELLAwifi")
     print(res)
 
-
-
 print("Conectando WIFI:")
 res = hw.coneccion_up(red_default)
 print(res)
@@ -66,7 +64,7 @@ fallos = 1
 while True:
     # Test ping
     hostname = "google.com"
-    response = os.system("ping -c 1 " + hostname)
+    response = os.system("ping -c 1 -w2 " + hostname + " > /dev/null 2>&1")
     if response == 0:
         print("Network Active")
         time.sleep(30)
