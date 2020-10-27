@@ -30,7 +30,7 @@ conecciones = hw.conecciones_guardadas()
 red_default = "StellaWIFI"
 
 for c in conecciones.keys():
-    if conecciones[c] = 'wifi' and c != "StellaWIFI":
+    if conecciones[c] == 'wifi' and c != "StellaWIFI":
         red_default = c
 
 print("Conexion a usar: ", red_default)
