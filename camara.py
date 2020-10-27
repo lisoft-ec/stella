@@ -6,19 +6,25 @@ import datetime
 import time
 import cv2
 import numpy as np
+import odoorpc
+
  
 
 class Camara():
 
     def __init__(self):
+        directorio = os.path.dirname(__file__)
+        self.backup = self.directorio + "/backup.data"
+
         self.is_coral = os.environ['USER'] == 'mendel'
 
         # Iniciar hardware (Leds, temp)
         self.hw = GoogleCoral()
 
         # Iniciar Archivo de configuraciones
+        directorio = os.path.dirname(__file__)        
         self.config = config = configparser.ConfigParser()
-        config.read('../configuraciones.ini')
+        config.read(directorio + '/../configuraciones.ini')
 
         # Iniciar CAMARA
         self.con_video = config['CAMARA']['GRABAR'] == "SI"
@@ -60,12 +66,7 @@ class Camara():
 
         self.tiempo_ms = time.time()
 
-        #Lector de codigos QR
-        self.qr_detect = cv2.QRCodeDetector()
-
-        # Background
-        self.backSub = cv2.createBackgroundSubtractorMOG2()
-        #self.backSub = cv.createBackgroundSubtractorKNN()
+        
 
     def __del__(self): 
         print("Destructor")
@@ -80,11 +81,61 @@ class Camara():
         if valor == "entra":
             print("\n\nEvento_Cambio: ", valor, "\n\n")
             self.hw.setLED(0,1,0) #verde
+            self.guardar_en_odoo('in')
         elif valor == "sale":
             print("\n\nEvento_Cambio: ", valor, "\n\n")
             self.hw.setLED(1,1,0) #amarillo
+            self.guardar_en_odoo('out')
         else:
             self.hw.setLED(0,0,0)
+
+
+    def guardar_en_odoo(self, tipo):
+        hoy = datetime.datetime.today()
+        hora = hoy.time()
+        hora = hora.hour + (hora.minute / 60.0) + (hora.second / 3600.0)                   
+        
+        valores = {
+            'fecha': hoy.strftime("%Y-%m-%d"),
+            'hora': hora,
+            'zona_id': 3,
+            'tipo': tipo
+        }                
+
+        try:
+            odoo = odoorpc.ODOO('aforo.silttec.com', protocol='jsonrpc+ssl', port=443)
+            odoo.login('aforo', 'admin', 'stt030')
+            m_registro =  odoo.env['aforo.registro']   
+            r = m_registro.create(valores)  
+            print("Guardado registro: ", tipo.upper(), r) 
+
+            # Revisar si existen backups
+            if os._exists(self.backup):
+                f = open(self.backup, 'r')
+                for l in f.readline():
+                    pars = l.strip().split('|')
+                    if len(pars) => 4:
+                        valores = {
+                            'fecha': pars[0],
+                            'hora': pars[1],
+                            'zona_id': int(pars[2]),
+                            'tipo': pars[3]
+                        } 
+                        r = m_registro.create(valores) 
+                f.close()
+                os.remove(self.backup)
+
+            odoo.logout()
+
+        except Exception as e:
+            print("Error al conectar con ODOO: ", e)
+
+            # Guardar en archivo local de respaldo
+            
+            f = open(self.backup, 'a')
+            f.write("%s|%s|%s|%s\n" % (valores['fecha'], valores['hora'], valores['zona_id'], valores['tipo'])) 
+            f.close()
+            pass
 
 
     def procesar_imagen(self, show=False):
@@ -110,16 +161,10 @@ class Camara():
         h,w = frame.shape[:2]
         if w != self.cap_w or h != self.cap_h:
             frame = cv2.resize(frame, (self.cap_w, self.cap_h))
-        ###
-
-
-        # data, bbox, straight_qrcode = self.qr_detect.detect(frame)  #detectAndDecode(frame)
-        # if bbox is not None and len(data) > 0:
-        # 	print("QR: " , data)
-        # 	nrOfPoints = len(bbox)        
+        ###       
         
-        detectados, frame2 = 0, frame
-        #_, detectados, frame2 = self.detector.get(frame)		
+        #detectados, frame2 = 0, mask
+        estado, _, detectados, frame2 = self.detector.get(frame)		
         
         if self.con_video:
             if detectados > 0: 
@@ -145,7 +190,6 @@ class Camara():
         lapso_ms = time.time() - self.tiempo_ms
         self.tiempo_ms = time.time()
         
-
         if show:
             # Crear cuadrado oscuro inferior
             x, y, w, h = 0, frame2.shape[0] - 25, frame2.shape[1], 25
@@ -159,13 +203,14 @@ class Camara():
             str_time = timestamp.strftime("%d/%m/%Y %I:%M:%S %p")		
             cv2.putText(frame2, str_time, (10, frame2.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (215, 231, 106), 1)
 
-            # Poner temperatura            
-            cv2.putText(frame2, temperatura + " C", (frame2.shape[1] - 50, frame2.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (16, 230, 231), 1)
+            # Poner temperatura     
+            color_temp = (16, 230, 231) if estado == 'det.' else (215, 231, 106)    
+            cv2.putText(frame2, temperatura + " C", (frame2.shape[1] - 50, frame2.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, color_temp, 1)
 
             if self.con_video: 
                 self.writer.write(frame2)
                 #time.sleep(0.03)
 
-        #print("Lapso [ms]: %0.1f | Temp: %i°" % ( lapso_ms * 1000.0, int(temperatura)))
+        #print("Estado: %s | Lapso [ms]: %0.1f | Temp: %i°" % ( estado, lapso_ms * 1000.0, int(temperatura)))
 
         return frame2

@@ -1,8 +1,6 @@
 # USAGE
 # python webstreaming.py --ip 0.0.0.0 --port 8000
 
-# Veamos
-
 # import the necessary packages
 from comun import GoogleCoral
 import comun
@@ -57,8 +55,7 @@ def generate():
 		time.sleep(0.5)
 
 		# wait until the lock is acquired
-		with lock:
-			print("get lock")
+		with lock:			
 			# check if the output frame is available, otherwise skip
 			# the iteration of the loop
 			if outputFrame is None:
@@ -91,16 +88,12 @@ def get_image(frame_count):
 	while True:
 		frame = camara.procesar_imagen(True)
 		with lock:
-			print("set lock")
+			#print("set lock")
 			outputFrame = frame
 
 
 # check to see if this is the main thread of execution
-if __name__ == '__main__':
-	
-	#while True:
-	#	camara.procesar_imagen(False)
-	
+if __name__ == '__main__':	
 
 	# start a thread that will perform motion detection	
 	t = threading.Thread(target=get_image, args=(10,))

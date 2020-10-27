@@ -3,6 +3,7 @@ import numpy as np
 import cv2
 import datetime
 
+
 class Persona:
     personas = []
     p_id = "P001"
@@ -30,10 +31,10 @@ class Persona:
         Persona.personas.append(self)
     
     def update(self, rect, piso):  
-        umbral = int((piso[1] + piso[3]) / 2)
-        umbral2 = umbral #int((piso[1] + piso[3]) / 2.7)
+        umbral = int((piso[1] + piso[3]) / 1.9)
+        umbral2 = int((piso[1] + piso[3]) / 2.1)
 
-        print("UMBRAL: ", self.p_id, rect[3], umbral, umbral2, self.rect[3])
+        # print("UMBRAL: ", self.p_id, rect[3], umbral, umbral2, self.rect[3])
 
         if rect[3] >= umbral and self.rect[3] < umbral:
             self.entra += 1
@@ -87,7 +88,7 @@ class Persona:
     
     @staticmethod
     def clear():
-        for p in Persona.personas:            
+        for p in Persona.personas:  
             Persona.personas.remove(p)
             del p
 
@@ -98,12 +99,12 @@ class Persona:
         for p in Persona.personas:
             p.usada = 0
 
-        if len(detectados) > 0 or len(Persona.personas) > 0:
-            print()
-            print("Detectadas:", len(detectados), "Existen: ", len(Persona.personas))
+        #if len(detectados) > 0 or len(Persona.personas) > 0:
+            #print()
+            #print("Detectadas:", len(detectados), "Existen: ", len(Persona.personas))
 
         for d in detectados:     
-            cuerpo = d['hist']     
+            #cuerpo = d['hist']     
 
             candidatos = []
             for p in Persona.personas:
@@ -119,7 +120,7 @@ class Persona:
                     })
             
             if len(candidatos)==0:
-                print("Creando persona")
+                # print("Creando persona")
                 ps = Persona(d['rect'], evt_cambio=evt_cambio)
 
             elif len(candidatos) > 0:
@@ -129,7 +130,7 @@ class Persona:
                         maximo = c['f']
                         ps = c['p']
 
-                print("Actualizar a persona ", ps.p_id, "/ factor:", maximo, "/ dir: ", ps.entra, ps.sale)
+                # print("Actualizar a persona ", ps.p_id, "/ factor:", maximo, "/ dir: ", ps.entra, ps.sale)
 
                 ps.update(d['rect'], piso) 
                 ps.usada = 1
@@ -140,59 +141,19 @@ class Persona:
         for p in Persona.personas:
             if not p.usada:
                 p.por_eliminar += 1	
-                print("Desactiva a persona:", p.p_id)
+                #print("Desactiva a persona:", p.p_id)
                 p.activa = 0
                 if p.por_eliminar > 5:
-                    print("Registrar: ", p.p_id, p.entra, p.sale)
-                    ####                    
-                    estado = p.sale - p.entra
-                    if estado != 0:                        
-                        hoy = datetime.datetime.today()
-                        hora = hoy.time()
-                        hora = hora.hour + (hora.minute / 60.0) + (hora.second / 3600.0)
-
-                        if p.entra > p.sale:
-                            tipo = "in"
-                        else:
-                            tipo = "out"                          
-                        
-                        valores = {
-                            'fecha': hoy.strftime("%Y-%m-%d"),
-                            'hora': hora,
-                            'zona_id': 2,
-                            'tipo': tipo
-                        }        
-                        Persona.m_registro = Persona.conectar_odoo()
-                        if Persona.m_registro:
-                            r = Persona.m_registro.create(valores)
-                            print("Guardado registro: ", tipo.upper(), r)                            
-                    ####
+                    estado = p.sale - p.entra  
+                    print("Registrar: ", p.p_id, p.entra, p.sale, estado)
                     print("Eliminando persona: ", p.p_id)
                     Persona.personas.remove(p)
                     del p
 
-        return resultado
-
-    @staticmethod
-    def conectar_odoo():
-        if Persona.m_registro:
-            return Persona.m_registro
-        else:
-            Persona.m_registro = False
-            try:
-                #odoo = odoorpc.ODOO('aforo.silttec.com', protocol='jsonrpc+ssl', port=443)
-                odoo = odoorpc.ODOO('localhost', port=8071)
-                odoo.login('aforo', 'admin', 'stt030')
-                Persona.m_registro =  odoo.env['aforo.registro']                
-            except:
-                print("Error al conectar con ODOO")
-                pass
-            
-            return Persona.m_registro
+        return resultado   
         
 
-##########################################################
-        
+##########################################################        
    
 
 
@@ -259,8 +220,11 @@ class Persona:
             #         pto_ant = pto
             #     #cv2.circle(img, pto , 5, p.color , 1)
 
-        umbral = int((piso[1] + piso[3]) / 2)
         cv2.rectangle(frameOver, (piso[0], piso[1]), (piso[2], piso[3]), (255, 0, 0), cv2.FILLED)
+        umbral = int((piso[1] + piso[3]) / 1.9)        
+        cv2.line(frameOver, (0, umbral), (W, umbral), (255, 0, 255), 2)   
+
+        umbral = int((piso[1] + piso[3]) / 2.1)        
         cv2.line(frameOver, (0, umbral), (W, umbral), (255, 0, 255), 2)      
 
         return cv2.addWeighted(frameOver, alpha, img, 1-alpha, 0, img)
