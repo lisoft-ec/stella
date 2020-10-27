@@ -1,6 +1,5 @@
 from comun import GoogleCoral
 
-
 import os
 import time
 
@@ -27,9 +26,14 @@ for i in range(2):
 
 #Crear wifi
 conecciones = hw.conecciones_guardadas()
-print(conecciones)
+#print(conecciones)
+red_default = "StellaWIFI"
 
-red_default = "SILTTEC"
+for c in conecciones.keys():
+    if conecciones[c] = 'wifi' and c != "StellaWIFI":
+        red_default = c
+
+print("Conexion a usar: ", red_default)
 
 if "StellaWIFI" not in conecciones.keys():
     print("Creando a StellaWIFI")

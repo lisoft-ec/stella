@@ -8,13 +8,12 @@ import cv2
 import numpy as np
 import odoorpc
 
- 
 
 class Camara():
 
     def __init__(self):
         directorio = os.path.dirname(__file__)
-        self.backup = self.directorio + "/backup.data"
+        self.backup = directorio + "/backup.data"
 
         self.is_coral = os.environ['USER'] == 'mendel'
 
@@ -114,7 +113,7 @@ class Camara():
                 f = open(self.backup, 'r')
                 for l in f.readline():
                     pars = l.strip().split('|')
-                    if len(pars) => 4:
+                    if len(pars) >= 4:
                         valores = {
                             'fecha': pars[0],
                             'hora': pars[1],
