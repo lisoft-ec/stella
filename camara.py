@@ -1,4 +1,5 @@
 from comun import GoogleCoral
+import comun
 import os
 from deteccion import DetectorPersonas
 import configparser
@@ -79,12 +80,12 @@ class Camara():
 
         if valor == "entra":
             print("\n\nEvento_Cambio: ", valor, "\n\n")
-            self.hw.setLED(0,1,0) #verde
-            self.guardar_en_odoo('in')
+            self.hw.setLED(0,1,0) #verde            
         elif valor == "sale":
             print("\n\nEvento_Cambio: ", valor, "\n\n")
             self.hw.setLED(1,1,0) #amarillo
-            self.guardar_en_odoo('out')
+        elif valor == "in" or valor == "out": # Registrar Evento
+            self.guardar_en_odoo(valor)
         else:
             self.hw.setLED(0,0,0)
 
@@ -98,29 +99,34 @@ class Camara():
             'fecha': hoy.strftime("%Y-%m-%d"),
             'hora': hora,
             'zona_id': 3,
-            'tipo': tipo
+            'tipo': tipo,
+            'version': comun.__VERSION__,
+            'ip': self.hw.get_ip_address()
         }                
 
         try:
-            odoo = odoorpc.ODOO('aforo.silttec.com', protocol='jsonrpc+ssl', port=443)
+            #odoo = odoorpc.ODOO('aforo.silttec.com', protocol='jsonrpc+ssl', port=443)
+            odoo = odoorpc.ODOO('192.168.0.100', port=8071)
             odoo.login('aforo', 'admin', 'stt030')
             m_registro =  odoo.env['aforo.registro']   
-            r = m_registro.create(valores)  
+            r = m_registro.registrar_evento(valores)  
             print("Guardado registro: ", tipo.upper(), r) 
 
             # Revisar si existen backups
-            if os._exists(self.backup):
+            if os.path.exists(self.backup):
                 f = open(self.backup, 'r')
-                for l in f.readline():
+                for l in f.readlines():
                     pars = l.strip().split('|')
                     if len(pars) >= 4:
                         valores = {
                             'fecha': pars[0],
                             'hora': pars[1],
                             'zona_id': int(pars[2]),
-                            'tipo': pars[3]
+                            'tipo': pars[3],
+                            'version': comun.__VERSION__,
+                            'ip': self.hw.get_ip_address()
                         } 
-                        r = m_registro.create(valores) 
+                        r = m_registro.registrar_evento(valores) 
                 f.close()
                 os.remove(self.backup)
 

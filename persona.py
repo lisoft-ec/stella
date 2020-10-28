@@ -31,8 +31,8 @@ class Persona:
         Persona.personas.append(self)
     
     def update(self, rect, piso):  
-        umbral = int((piso[1] + piso[3]) / 1.9)
-        umbral2 = int((piso[1] + piso[3]) / 2.1)
+        umbral = int((piso[1] + piso[3]) / 2.0)
+        umbral2 = umbral #int((piso[1] + piso[3]) / 2.1)
 
         # print("UMBRAL: ", self.p_id, rect[3], umbral, umbral2, self.rect[3])
 
@@ -145,7 +145,11 @@ class Persona:
                 p.activa = 0
                 if p.por_eliminar > 5:
                     estado = p.sale - p.entra  
-                    print("Registrar: ", p.p_id, p.entra, p.sale, estado)
+                    if estado > 0:
+                        self.evt_cambio("in")
+                    elif estado < 0:
+                        self.evt_cambio("out")
+                        
                     print("Eliminando persona: ", p.p_id)
                     Persona.personas.remove(p)
                     del p
@@ -221,11 +225,11 @@ class Persona:
             #     #cv2.circle(img, pto , 5, p.color , 1)
 
         cv2.rectangle(frameOver, (piso[0], piso[1]), (piso[2], piso[3]), (255, 0, 0), cv2.FILLED)
-        umbral = int((piso[1] + piso[3]) / 1.9)        
+        umbral = int((piso[1] + piso[3]) / 2.0)        
         cv2.line(frameOver, (0, umbral), (W, umbral), (255, 0, 255), 2)   
 
-        umbral = int((piso[1] + piso[3]) / 2.1)        
-        cv2.line(frameOver, (0, umbral), (W, umbral), (255, 0, 255), 2)      
+        #umbral = int((piso[1] + piso[3]) / 2.1)        
+        #cv2.line(frameOver, (0, umbral), (W, umbral), (255, 0, 255), 2)      
 
         return cv2.addWeighted(frameOver, alpha, img, 1-alpha, 0, img)
 	

@@ -10,8 +10,7 @@ from flask import Flask, Response, request, render_template
 import configparser
 import threading
 import time
-import cv2
- 
+import cv2 
 
 camara = Camara()
 outputFrame = None
@@ -27,7 +26,6 @@ def url_index():
 
 @app.route('/', methods=['POST'])
 def url_index_post():
-	print("ver index!")
 	config = camara.config
 	password = request.form['fpass']	
 	msg = ""
@@ -79,10 +77,29 @@ def video_feed():
 
 @app.route("/conexion")
 def conexion():
-	return render_template("conexion.html", defcorte = config['DETECTOR']['corte'], defpiso = config['DETECTOR']['piso'], defpass="", defmsg="", defversion= comun.__VERSION__)
+	config = camara.config
+	return render_template("conexion.html", defssid = config['CONEXION']['wifi'], defpass = '', defmsg="")
+
+@app.route("/conexion", methods=['POST'])
+def conexion_post():
+	config = camara.config
+	password = request.form['fpass']	
+	msg = ""
+	if password == "steLLa":
+		ssid = request.form['fssid']	
+		# config['DETECTOR']['corte'] = text
+
+		# text = request.form['fpiso']	
+		# config['DETECTOR']['piso'] = text
+
+		# with open('../configuraciones.ini', 'w') as configfile:
+		# 	config.write(configfile)
+	else:
+		msg = "Contraseña NO válida!"
+
+	return render_template("conexion.html", defssid = config['CONEXION']['wifi'], defpass = '', defmsg=msg)
 
 def get_image(frame_count):
-	print(frame_count)
 	global outputFrame, lock
 
 	while True:

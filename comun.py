@@ -4,7 +4,7 @@ from periphery import GPIO
 import time
 import configparser
 
-__VERSION__ = "0.1.2"
+__VERSION__ = "1.1.2"
 
 class GoogleCoral:	
 	def __init__(self):
@@ -13,7 +13,7 @@ class GoogleCoral:
 		self.ledG = False
 		self.ledB = False
 		self.usuario_sistema = os.environ['USER']
-		
+		self.red_default = ''
 
 	def __del__(self):
 		#print("Destructor")
@@ -36,6 +36,10 @@ class GoogleCoral:
 		self.ledR.write(self.leds_on == 0)
 		self.ledG.write(self.leds_on == 0)
 		self.ledB.write(self.leds_on == 0)
+
+		# Boton de entrada
+		self.BTN = GPIO(141, "in")
+		
 
 	def setLED(self,r,g,b):
 		if self.usuario_sistema != 'mendel':
@@ -176,6 +180,14 @@ class GoogleCoral:
 		cmd = "nmcli con down '%s'" % conexion
 		valor = os.popen(cmd).read().strip()
 		return valor
+
+	def reiniciar(self):
+		if self.usuario_sistema != 'mendel':
+			return
+
+		cmd = "sudo reboot"
+		valor = os.popen(cmd).read().strip()
+		return valor
 	
 	def cambiar_nombre_conexion(self, antiguo, nuevo):
 		cmd = "nmcli connection modify '%s' con-name '%s'" % (antiguo, nuevo)
@@ -204,6 +216,21 @@ class GoogleCoral:
 			nombres[name] = tipo
 
 		return nombres
+
+	def get_ip_address(self, conexion=''):
+		if conexion == '':
+			if self.red_default == '':
+				cons = self.conexiones_estado()
+				for c in cons:
+					if 'connect' in c[0] and c[2] != '--':
+						self.red_default = c[2]					
+
+			conexion = self.red_default
+
+		cmd = "nmcli -g ip4.address connection show '%s'" % conexion
+		stream = os.popen(cmd)
+		output = stream.read().strip()
+		return output
 
 		# direcion ip manual
 		# nmcli connection modify "Wired connection 1" con-name "ETH"
