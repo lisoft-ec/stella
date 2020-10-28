@@ -79,10 +79,10 @@ class Camara():
         """
 
         if valor == "entra":
-            print("\n\nEvento_Cambio: ", valor, "\n\n")
+            print("Evento_Cambio: ", valor)
             self.hw.setLED(0,1,0) #verde            
         elif valor == "sale":
-            print("\n\nEvento_Cambio: ", valor, "\n\n")
+            print("Evento_Cambio: ", valor)
             self.hw.setLED(1,1,0) #amarillo
         elif valor == "in" or valor == "out": # Registrar Evento
             self.guardar_en_odoo(valor)
@@ -105,8 +105,8 @@ class Camara():
         }                
 
         try:
-            #odoo = odoorpc.ODOO('aforo.silttec.com', protocol='jsonrpc+ssl', port=443)
-            odoo = odoorpc.ODOO('192.168.0.100', port=8071)
+            odoo = odoorpc.ODOO('aforo.silttec.com', protocol='jsonrpc+ssl', port=443)
+            #odoo = odoorpc.ODOO('192.168.0.100', port=8071)
             odoo.login('aforo', 'admin', 'stt030')
             m_registro =  odoo.env['aforo.registro']   
             r = m_registro.registrar_evento(valores)  

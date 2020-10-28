@@ -22,8 +22,8 @@ class Persona:
         self.por_eliminar = 0
         self.activa = 1
         self.usada = 1
-        self.sale = 0
-        self.entra = 0
+        self.primero = 0
+        self.ultimo = 0
         self.evt_cambio = evt_cambio
         
         self.color = (100,100,100)  
@@ -32,23 +32,24 @@ class Persona:
     
     def update(self, rect, piso):  
         umbral = int((piso[1] + piso[3]) / 2.0)
-        umbral2 = umbral #int((piso[1] + piso[3]) / 2.1)
 
-        # print("UMBRAL: ", self.p_id, rect[3], umbral, umbral2, self.rect[3])
+        if self.primero == 0:
+            self.primero = 1 if self.rect[3] < umbral else -1
 
+        self.ultimo = 1 if rect[3] < umbral else -1        
+        
         if rect[3] >= umbral and self.rect[3] < umbral:
-            self.entra += 1
             self.color = (0,255,0)
             if self.evt_cambio is not None:
                 self.evt_cambio("entra")                
 
-        if rect[3] < umbral2 and self.rect[3] >= umbral2:
-            self.sale += 1
+        if rect[3] < umbral and self.rect[3] >= umbral:
             self.color = (0,255,255)
             if self.evt_cambio is not None:
                 self.evt_cambio("sale")
 
-        self.rect = rect
+        self.rect = rect        
+
         self.activa = 1                
         #self.puntos.append(pto)
         return 0
@@ -113,7 +114,7 @@ class Persona:
 
                 #cv2.compareHist(cuerpo, p.histo, cv2.HISTCMP_CORREL)
                 factor = Persona.intersection_over_union(d['rect'], p.rect)
-                if factor > 0.4:
+                if factor > 0.2:
                     candidatos.append({
                         'p': p,
                         'f': factor,
@@ -144,11 +145,8 @@ class Persona:
                 #print("Desactiva a persona:", p.p_id)
                 p.activa = 0
                 if p.por_eliminar > 5:
-                    estado = p.sale - p.entra  
-                    if estado > 0:
-                        self.evt_cambio("in")
-                    elif estado < 0:
-                        self.evt_cambio("out")
+                    if p.primero != p.ultimo:
+                        p.evt_cambio("in" if p.primero == 1 else "out")
                         
                     print("Eliminando persona: ", p.p_id)
                     Persona.personas.remove(p)
