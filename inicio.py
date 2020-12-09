@@ -32,7 +32,7 @@ def revisar_actualizaciones():
             print("Sacar respaldo: " , res)
 
             # GIT: Actualizaciones
-            command = "git -C %s pull" % carpeta_stella
+            command = "git -C %s reset --hard origin/master" % carpeta_stella
             process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
             output, error = process.communicate()
             time.sleep(2)
