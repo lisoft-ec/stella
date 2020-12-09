@@ -1,171 +1,99 @@
-from comun import GoogleCoral
-import configparser
 import os
 import time
+import subprocess
+import shutil
 
-delay = 1.0
+comunicacion = False
+actualizacion = False
 
-hw = GoogleCoral()
-
-#Lamp TEST
-hw.setLED(1,0,0)
-time.sleep(delay)
-hw.setLED(0,1,0)
-time.sleep(delay)
-hw.setLED(0,0,1)
-time.sleep(delay)
-hw.setLED(0,0,0)
-time.sleep(delay)
-
-for i in range(2):
-    hw.setLED(1,1,1)
-    time.sleep(delay / 5.0)
-    hw.setLED(0,0,0)
-    time.sleep(delay / 5.0)
+carpeta_stella = '/home/mendel/stella/'
+carpeta_backup = '/home/mendel/bk_stella/'
 
 
-#Crear wifi
-conexiones = hw.conexiones_guardadas()
-cte_stellawifi = "StellaWIFI"
-red_default = cte_stellawifi
-red_eth = "Wired connection 1"
+def revisar_actualizaciones():
+    command = "git -C %s remote update" % carpeta_stella
+    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    output, error = process.communicate()
 
-for c in conexiones.keys():
-    if conexiones[c] == 'ethernet' and not conexiones[c].startswith("gadget"):
-        red_eth = c
-    if conexiones[c] == 'wifi' and c != cte_stellawifi:
-        red_default = c
+    if output == b'Fetching origin\n':        
+        print("Con comunicación al GIT")
 
+        command = "git -C %s status" % carpeta_stella
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        output, error = process.communicate()
+        
 
-print(red_eth, red_default)
-#Leer conexion
-config = configparser.ConfigParser()
-#directorio = os.path.dirname(__file__)
-directorio = os.path.dirname(os.path.abspath(__file__))
-config.read(directorio + '/../configuraciones.ini')
+        if error == b'' and b'(use "git pull" to update your local branch)' in output:            
+            print("Con Actualización")
+            # eliminar carpeta        
+            shutil.rmtree(carpeta_backup, ignore_errors=True)
+            # Sacar respaldo
+            res = shutil.copytree(carpeta_stella, carpeta_backup, ignore=shutil.ignore_patterns('inicio.pyc'))
+            print("Sacar respaldo: " , res)
 
-tipo = config['CONEXION']['tipo']
-tipo = tipo.strip()
-if tipo == "wifi":
-    red_wifi = config['CONEXION']['wifi']
-    if red_wifi != "none":
-        red_default = red_wifi
+            # GIT: Actualizaciones
+            command = "git -C %s pull" % carpeta_stella
+            process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+            output, error = process.communicate()
+            time.sleep(2)
 
-    contrasena = config['CONEXION']['contrasena']
-else:
-    eth = config['CONEXION']['eth']    
-    eth_ip = config['CONEXION']['eth_ip']
-    eth_enlace = config['CONEXION']['eth_enlace']
-    eth_dns = config['CONEXION']['eth_dns']
-
-    hw.cambiar_nombre_conexion(red_eth, 'ETH')
-    red_eth = "ETH"
-
-    res = hw.set_ethernet(red_eth, eth, eth_ip, eth_enlace, eth_dns)
-    print(res)
-
-    red_default = red_eth
-       
-
-print("Conexion a usar: ", red_default)
-
-if cte_stellawifi not in conexiones.keys():
-    print("Creando a StellaWIFI")
-    hw.bajar_conexion_auto("-")
-    res = hw.crear_wifi(cte_stellawifi, cte_stellawifi)
-    print(res)
-    time.sleep(5)
-
-if red_default != cte_stellawifi and tipo == "wifi" and red_default not in conexiones.keys():
-    print("Conectar a red WIFI")
-    hw.bajar_conexion_auto("-")
-    res = hw.conectar_wifi(red_default, contrasena)
-    print(res)
-    time.sleep(5)
+            return True
+        else:
+            print("Sin Actualización")
+            return False
+    else:
+        print("Sin Comunicación por GIT")
+        return False
 
 
-print("Levantar Conexion:")
-if red_default == cte_stellawifi:
-    hw.setLED(1,0,1) # Violeta
-else:
-    hw.setLED(0,0,0)
-
-res = hw.conexion_up(red_default)
-print(res)
-
-
-# GIT: Actualizaciones
-
-stream = os.popen('git -C /home/mendel/stella/ pull')
-output = stream.read().strip()
-print(output)
-if output== "Already up to date.":  # Nada q hacer
-    hw.setLED(0,1,0) # verde
-elif output.startswith("fatal:"):   # Error
-    hw.setLED(1,0,0) # rojo
-else:  # Se Actualiza
-    hw.setLED(1,1,0) # amarillo  
-
-time.sleep(delay)
-hw.setLED(0,0,0)
-
+actualizacion = revisar_actualizaciones()
+    
 print("Arranco el Programa")
 
 os.system("sudo service programa start")
+time.sleep(10)
 
-time.sleep(delay)
+command = "sudo service programa status"
+process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+output, error = process.communicate()
+lineas = output.split(b'\n')
 
-def activar_stellawifi():
-    global red_default
-    hw.setLED(1,1,1) # Blanco
-    red_default = cte_stellawifi
-    res = hw.conexion_up(cte_stellawifi)
-    print(res)
+arraque_normal = True
 
-def tiempo(segundos):
-    global red_default, hw
-    segundos *= 10
-    for i in range(segundos):        
-        if hw.BTN.read():
-            if red_default == cte_stellawifi:
-                hw.setLED(1,1,1) # Blanco                
-                hw.reiniciar()
-            else:
-                hw.setLED(1,0,1) # Violeta
-                flag_btn += 1
-                if flag_btn >= 50: #5 segundos
-                    flag_btn = 0                
-                    print("ACTIVAR StellaWIFI!")                 
-                    activar_stellawifi()                   
-        else:
-            flag_btn = 0
-            hw.setLED(0,0,0)
+for l in lineas:
+    l = l.strip()
 
-        time.sleep(0.1)
+    if l.startswith(b'Active:'):
+        arraque_normal = b'inactive' not in l
+        break
 
-fallos = 1
-flag_btn = 0
-# keep network test
-while True:
-    # Test ping
-    if red_default != cte_stellawifi:
-        hostname = "google.com"
-        response = os.system("ping -c 1 -w2 " + hostname + " > /dev/null 2>&1")
-        if response == 0:
-            print("Network Active")
-            tiempo(30)
-        else:
-            print("Network Error: ", fallos) 
-            fallos += 1
-            # Baja la conexion
-            res = hw.conexion_down(red_default)
-            print(res)
-            tiempo(3) # espera 3 segundos y vuelve a conectar
-            res = hw.conexion_up(red_default)
-            print(res)
-            tiempo(3)
-    else:
-        tiempo(3)
-           
+if not arraque_normal:
+    print("Algún problema al arrancar programa.\nRestauro backup")
+    os.system("sudo service programa stop")
+    time.sleep(3)
+
+    # Copio y Elimino archivos desde el BackUp
+    for (dirpath, dirnames, filenames) in os.walk(carpeta_backup):
+        if not dirpath.endswith('/'):
+            dirpath += '/'
+
+        dirO = dirpath
+        dirD = dirO.replace(carpeta_backup, carpeta_stella)
+        if not os.path.exists(dirD):
+            os.mkdir(dirD)
+            print("Creando: ", dirD)
+
+        for name in filenames:
+            archivoO = dirpath + name 
+            archivoD = archivoO.replace(carpeta_backup, carpeta_stella)
+
+            os.system("sudo cp %s %s" % (archivoO, archivoD)) 
+            print("Copiando: ", archivoO, archivoD)
+
+    print("Intentar arrancar desde el backup ya restaurado")
+    os.system("sudo chown mendel:mendel -Rf %s" % carpeta_stella)
+    time.sleep(2)
+    os.system("sudo service programa start")
+    time.sleep(2)
 
 print("Fin!")

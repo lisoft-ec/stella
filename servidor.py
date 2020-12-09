@@ -11,8 +11,9 @@ import configparser
 import threading
 import time
 import cv2 
+import sys
 
-camara = Camara()
+camara = None
 outputFrame = None
 lock = threading.Lock()
 
@@ -104,19 +105,22 @@ def get_image(frame_count):
 
 	while True:
 		frame = camara.procesar_imagen(True)
+
+
 		with lock:
-			#print("set lock")
 			outputFrame = frame
 
 
 # check to see if this is the main thread of execution
 if __name__ == '__main__':	
+	#Argumentos
+	args = sys.argv
+	camara = Camara(args)
 
 	# start a thread that will perform motion detection	
 	t = threading.Thread(target=get_image, args=(10,))
 	t.daemon = True
 	t.start()
-
+	
 	# start the flask app
-	app.run(host="0.0.0.0", port=7777, debug=False,
-		threaded=True, use_reloader=False)
+	app.run(host="0.0.0.0", port=7777, debug=False, threaded=True, use_reloader=False)
