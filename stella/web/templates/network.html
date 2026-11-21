@@ -13,7 +13,8 @@
       <header><strong>Estado</strong> <button class="outline secondary small right" @click="loadStatus()">Actualizar</button></header>
       <template x-if="status">
         <div>
-          <p>
+          <p x-show="!status.managed" class="muted small">Sin datos: la gestión de red está desactivada.</p>
+          <p x-show="status.managed">
             <span class="dot" :class="status.connected ? 'ok' : 'bad'"></span>
             <span x-text="status.connected ? 'Conectado' : 'Sin conexión'"></span>
             <span class="badge" x-show="status.hotspot_active">Hotspot activo</span>

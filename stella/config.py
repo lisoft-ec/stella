@@ -118,6 +118,7 @@ DEFAULTS = {
         # When False Stella never touches NetworkManager (PC / development).
         "managed": False,
         "use_sudo": True,
+        "interface": "wlan0",
         "wifi": [],  # [{ssid, password, priority}]
         "hotspot": {
             "enabled": True,

@@ -205,6 +205,28 @@ def reboot():
     return jsonify(ok=True, message="Reiniciando el equipo…")
 
 
+@api.route("/network/status")
+def network_status():
+    from ..net.wifi import NmcliError
+
+    try:
+        return jsonify(g.ctx.network.status())
+    except NmcliError as exc:
+        abort(503, "NetworkManager: %s" % exc)
+
+
+@api.route("/network/scan")
+def network_scan():
+    from ..net.wifi import NmcliError
+
+    if not g.ctx.network.managed():
+        abort(400, "La gestión de red está desactivada")
+    try:
+        return jsonify(g.ctx.network.scan())
+    except NmcliError as exc:
+        abort(503, "NetworkManager: %s" % exc)
+
+
 @api.route("/logs")
 def logs():
     limit = min(400, max(1, request.args.get("limit", 200, type=int)))

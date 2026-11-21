@@ -30,6 +30,7 @@ def create_app(ctx):
     def authenticate():
         g.ctx = ctx
         g.via_token = False
+        ctx.network.touch_web()
         if request.endpoint in PUBLIC_ENDPOINTS:
             return None
         token = ctx.config.get("api.token")

@@ -9,7 +9,9 @@ import uuid
 from . import __version__
 from .counters import Counters
 from .hw import system
+from .hw.leds import Leds
 from .logbuffer import LogBuffer
+from .net.wifi import Network
 from .outbox import Outbox
 from .pipeline import Pipeline
 from .sinks.mqtt import MqttSink
@@ -34,6 +36,9 @@ class App:
         self.webhook = WebhookSink(config)
         self.outbox = Outbox(self.storage, [self.mqtt, self.webhook])
         self.pipeline = Pipeline(config, on_event=self.on_crossing, detector=detector)
+        self.leds = Leds(config)
+        self.network = Network(config, self.storage)
+        self._network_status = {}
         self._start_pipeline = start_pipeline
         self._stop = threading.Event()
         self._event_seq = 0
@@ -63,7 +68,7 @@ class App:
         return event
 
     def on_event_hook(self, event, state):
-        """Extension point (LEDs)."""
+        self.leds.flash("entry" if event["direction"] == "in" else "exit")
 
     def reset_counters(self, occupancy=0):
         state = self.counters.reset(occupancy)
@@ -128,6 +133,10 @@ class App:
             system.apply_timezone(self.config.get("device.timezone"))
         if section == "counting":
             self.mqtt.publish_counters(self.counters.state())
+        if section == "leds":
+            self.leds.reconfigure()
+        if section == "network":
+            threading.Thread(target=self.network.apply_safe, name="network-apply", daemon=True).start()
 
     # -- background housekeeping ----------------------------------------------
     def _housekeeping(self):
@@ -150,11 +159,29 @@ class App:
                 log.exception("Housekeeping failed")
 
     def tick(self):
-        """Extension point called every second."""
+        """Called every second: update the LED conditions."""
+        snap = self.pipeline.snapshot()
+        self.leds.set_condition("error", bool(snap["error"]) and not self.pipeline.finished)
+        self.leds.set_condition("full", self.counters.state()["full"])
+        if self.network.managed():
+            if not hasattr(self, "_net_t") or time.monotonic() - self._net_t >= 10:
+                self._net_t = time.monotonic()
+                try:
+                    self._network_status = self.network.status()
+                except Exception:
+                    self._network_status = {}
+            st = self._network_status
+            self.leds.set_condition("hotspot", bool(st.get("hotspot_active")))
+            self.leds.set_condition("no_network", st.get("connected") is False and not st.get("hotspot_active"))
+        else:
+            self.leds.set_condition("hotspot", False)
+            self.leds.set_condition("no_network", False)
 
     # -- lifecycle ----------------------------------------------------------
     def start(self):
         self.mqtt.publish_counters(self.counters.state())
+        self.leds.start()
+        self.network.start()
         self.mqtt.start()
         self.outbox.start()
         if self._start_pipeline:
@@ -164,6 +191,8 @@ class App:
 
     def stop(self):
         self._stop.set()
+        self.network.stop()
+        self.leds.stop()
         self.pipeline.stop()
         self.outbox.stop()
         self.mqtt.stop()
