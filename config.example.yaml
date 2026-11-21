@@ -1,0 +1,80 @@
+# Configuración de Stella.
+#
+# Copia este archivo como config.yaml en el directorio de datos:
+#   placa: /home/mendel/stella-data/config.yaml  (lo hace deploy/install.sh)
+#   PC:    ./data/config.yaml
+# Solo hace falta escribir lo que cambie respecto a los valores por defecto
+# (ver stella/config.py). Casi todo se puede editar después desde la web.
+# Los secretos vacíos (secret_key, token, password_hash) se generan solos
+# al primer arranque. Usuario y contraseña iniciales de la web: admin / stella.
+
+device:
+  id: stella-01
+  name: Stella
+  timezone: America/Guayaquil
+
+# ---------------------------------------------------------------------------
+# Perfil Coral Dev Board (por defecto)
+# ---------------------------------------------------------------------------
+camera:
+  source: /dev/video0
+  width: 640
+  height: 480
+  fps: 30
+detector:
+  model: models/ssd_mobilenet_v2_coco_quant_postprocess_edgetpu.tflite
+  delegate: edgetpu
+leds:
+  driver: gpio
+network:
+  managed: true
+  wifi:
+    # - ssid: MiRed
+    #   password: clave-de-la-red
+    #   priority: 10
+  hotspot:
+    enabled: true
+    ssid: StellaWIFI
+    password: stella1234
+
+# ---------------------------------------------------------------------------
+# Perfil PC (desarrollo): descomenta y sustituye los bloques de arriba
+# ---------------------------------------------------------------------------
+# camera:
+#   source: demo/entrada002.webm   # o 0 para la webcam
+#   width: 1280
+#   height: 720
+#   loop: true
+# detector:
+#   model: models/ssd_mobilenet_v2_coco_quant_postprocess.tflite
+#   delegate: none
+# leds:
+#   driver: none
+# network:
+#   managed: false
+
+counting:
+  # Coordenadas normalizadas (0..1). La zona y la línea se dibujan en la web.
+  roi: [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]]
+  line: [[0.0, 0.5], [1.0, 0.5]]
+  invert: false
+  occupancy_limit: 0
+  reset_time: "00:00"
+
+mqtt:
+  enabled: false
+  host: localhost
+  port: 1883
+  username: ""
+  password: ""
+  topic_prefix: stella
+  homeassistant: true
+
+webhook:
+  enabled: false
+  url: ""
+  headers: {}
+
+ota:
+  repo_url: ""
+  branch: master

@@ -1,0 +1,11 @@
+# Dependencias en la placa Coral (Python 3.7, venv /home/mendel/stella-venv
+# creado con --system-site-packages para ver pycoral y tflite_runtime del sistema).
+numpy==1.21.6
+opencv-python-headless==4.11.0.86
+Flask==2.2.5
+Werkzeug==2.2.3
+waitress==2.1.2
+paho-mqtt==1.6.1
+PyYAML==6.0.1
+python-periphery==2.4.1
+requests==2.31.0

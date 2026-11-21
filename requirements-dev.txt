@@ -1,0 +1,13 @@
+# Dependencias para desarrollar y probar en el PC (CPU, sin Edge TPU).
+numpy
+opencv-python-headless==4.11.0.86
+ai-edge-litert
+Flask==2.2.5
+Werkzeug==2.2.3
+waitress==2.1.2
+paho-mqtt==1.6.1
+PyYAML
+python-periphery==2.4.1
+requests
+pytest
+vermin
