@@ -1,0 +1,7 @@
+{# Video with a canvas overlay. Requires the parent component to expose `overlay` (canvas ref name). #}
+<div class="video-wrap" x-ref="wrap">
+  <img x-ref="video" src="{{ url_for('views.video') }}" alt="Vídeo en vivo"
+       @load="resize()" @error="videoError = true">
+  <canvas x-ref="canvas"></canvas>
+  <div class="video-msg" x-show="pipelineError" x-text="pipelineError"></div>
+</div>

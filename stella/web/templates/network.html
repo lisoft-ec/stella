@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Red{% endblock %}
+{% block content %}
+<h2>Red</h2>
+<div x-data="networkForm()">
+  <article class="banner info" x-show="data && !data.managed">
+    La gestión de red está desactivada: Stella no modifica NetworkManager (modo PC/desarrollo).
+    <label><input type="checkbox" role="switch" :checked="data && data.managed" @change="data.managed = $event.target.checked"> Activar gestión de red</label>
+  </article>
+
+  <div class="grid-2">
+    <article>
+      <header><strong>Estado</strong> <button class="outline secondary small right" @click="loadStatus()">Actualizar</button></header>
+      <template x-if="status">
+        <div>
+          <p>
+            <span class="dot" :class="status.connected ? 'ok' : 'bad'"></span>
+            <span x-text="status.connected ? 'Conectado' : 'Sin conexión'"></span>
+            <span class="badge" x-show="status.hotspot_active">Hotspot activo</span>
+          </p>
+          <table class="small">
+            <thead><tr><th>Interfaz</th><th>Tipo</th><th>Estado</th><th>Conexión</th></tr></thead>
+            <tbody>
+              <template x-for="d in status.devices">
+                <tr><td x-text="d.device"></td><td x-text="d.type"></td><td x-text="d.state"></td><td x-text="d.connection"></td></tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </template>
+      <p class="muted small" x-show="!status" x-text="statusError || 'Cargando…'"></p>
+    </article>
+
+    <article>
+      <header><strong>Redes visibles</strong> <button class="outline secondary small right" @click="scan()" :aria-busy="scanning">Buscar</button></header>
+      <ul class="scan">
+        <template x-for="n in networks" :key="n.ssid">
+          <li>
+            <span x-text="n.ssid"></span>
+            <small class="muted" x-text="n.signal + '% · ' + (n.security || 'abierta')"></small>
+            <button class="outline small" @click="addWifi(n.ssid)">Añadir</button>
+          </li>
+        </template>
+        <li class="muted small" x-show="!networks.length">Pulsa «Buscar» para ver las redes wifi cercanas.</li>
+      </ul>
+    </article>
+  </div>
+
+  <template x-if="data">
+    <div>
+      <article>
+        <header><strong>Redes wifi conocidas</strong></header>
+        <p class="small muted">Stella se conecta a la red disponible con mayor prioridad.</p>
+        <template x-for="(w, i) in data.wifi" :key="i">
+          <div class="row">
+            <input x-model="w.ssid" placeholder="Nombre de la red (SSID)">
+            <input type="password" x-model="w.password" placeholder="Clave (vacía si es abierta)" autocomplete="new-password">
+            <input type="number" x-model.number="w.priority" title="Prioridad" class="narrow">
+            <button class="outline secondary small" @click="data.wifi.splice(i, 1)">✕</button>
+          </div>
+        </template>
+        <button class="outline secondary small" @click="addWifi('')">Añadir red</button>
+      </article>
+
+      <div class="grid-2">
+        <article>
+          <header><strong>Hotspot de respaldo</strong></header>
+          <label><input type="checkbox" role="switch" x-model="data.hotspot.enabled"> Crear un punto de acceso si no hay conexión</label>
+          <div class="grid">
+            <label>SSID <input x-model="data.hotspot.ssid"></label>
+            <label>Clave <input type="password" x-model="data.hotspot.password" autocomplete="new-password"></label>
+          </div>
+          <div class="grid">
+            <label>Esperar antes de activarlo (s) <input type="number" min="15" x-model.number="data.hotspot.timeout"></label>
+            <label>Reintentar redes conocidas cada (s) <input type="number" min="30" x-model.number="data.hotspot.retry_interval"></label>
+          </div>
+        </article>
+
+        <article>
+          <header><strong>Ethernet</strong></header>
+          <label>Modo
+            <select x-model="data.ethernet.method">
+              <option value="auto">Automático (DHCP)</option>
+              <option value="manual">IP fija</option>
+            </select>
+          </label>
+          <template x-if="data.ethernet.method === 'manual'">
+            <div>
+              <label>Dirección (CIDR) <input x-model="data.ethernet.address" placeholder="192.168.0.30/24"></label>
+              <label>Puerta de enlace <input x-model="data.ethernet.gateway" placeholder="192.168.0.1"></label>
+              <label>DNS <input x-model="data.ethernet.dns" placeholder="8.8.8.8 1.1.1.1"></label>
+            </div>
+          </template>
+        </article>
+      </div>
+
+      <div class="toolbar">
+        <button @click="save()" :aria-busy="saving">Guardar y aplicar</button>
+      </div>
+    </div>
+  </template>
+</div>
+{% endblock %}

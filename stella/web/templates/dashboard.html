@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Panel{% endblock %}
+{% block content %}
+<div x-data="dashboard()" class="dashboard">
+  <section class="counters">
+    <article class="counter in">
+      <small>Entradas hoy</small>
+      <strong x-text="counters.in ?? '–'"></strong>
+    </article>
+    <article class="counter out">
+      <small>Salidas hoy</small>
+      <strong x-text="counters.out ?? '–'"></strong>
+    </article>
+    <article class="counter occ" :class="counters.full && 'full'">
+      <small>Aforo actual</small>
+      <strong>
+        <span x-text="counters.occupancy ?? '–'"></span><span class="limit" x-show="counters.limit" x-text="' / ' + counters.limit"></span>
+      </strong>
+    </article>
+  </section>
+
+  <div class="grid-main">
+    <section>
+      {% include "_video.html" %}
+      <p class="stats small muted">
+        <span x-text="(pipeline.fps ?? 0) + ' fps'"></span> ·
+        <span x-text="'inferencia ' + (pipeline.inference_ms ?? 0) + ' ms'"></span> ·
+        <span x-text="'movimiento ' + (pipeline.motion ?? 0) + ' %'"></span> ·
+        <span x-text="pipeline.active ? 'detectando' : 'en reposo'"></span>
+      </p>
+    </section>
+    <aside>
+      <article>
+        <header><strong>Estado</strong></header>
+        <dl class="kv">
+          <dt>Temperatura</dt><dd x-text="status.temperature != null ? status.temperature + ' °C' : '–'"></dd>
+          <dt>MQTT</dt><dd><span class="dot" :class="mqttClass()"></span><span x-text="mqttText()"></span></dd>
+          <dt>Pendientes de envío</dt><dd x-text="status.pending_deliveries ?? '–'"></dd>
+          <dt>IP</dt><dd x-text="Object.entries(status.ips || {}).map(([k, v]) => v + ' (' + k + ')').join(', ') || '–'"></dd>
+          <dt>Hora</dt><dd x-text="(status.time || '').replace('T', ' ').slice(0, 19)"></dd>
+          <dt>Activo desde hace</dt><dd x-text="duration(status.uptime)"></dd>
+        </dl>
+      </article>
+      <article>
+        <header><strong>Últimos cruces</strong></header>
+        <ul class="events">
+          <template x-for="ev in events" :key="ev.uid">
+            <li :class="ev.direction">
+              <span class="badge" x-text="ev.direction === 'in' ? 'Entrada' : 'Salida'"></span>
+              <span x-text="ev.ts.slice(11, 19)"></span>
+            </li>
+          </template>
+          <li x-show="!events.length" class="muted">Sin cruces todavía</li>
+        </ul>
+      </article>
+    </aside>
+  </div>
+</div>
+{% endblock %}

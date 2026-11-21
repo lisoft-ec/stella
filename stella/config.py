@@ -15,6 +15,8 @@ import yaml
 log = logging.getLogger(__name__)
 
 SECRET_MASK = "********"
+# pbkdf2 is understood by Werkzeug 2.2 (board) and 3.x (PC); 3.x defaults to scrypt.
+PASSWORD_METHOD = "pbkdf2:sha256"
 
 # Keys (dotted paths) never returned to clients in clear text.
 SECRET_KEYS = (
@@ -299,7 +301,7 @@ def generate_secrets(cfg):
         cfg["api"]["token"] = secrets.token_urlsafe(32)
         changed = True
     if not cfg["web"]["password_hash"]:
-        cfg["web"]["password_hash"] = generate_password_hash("stella")
+        cfg["web"]["password_hash"] = generate_password_hash("stella", method=PASSWORD_METHOD)
         cfg["web"]["default_password"] = True
         changed = True
     return changed

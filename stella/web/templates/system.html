@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Sistema{% endblock %}
+{% block content %}
+<h2>Sistema</h2>
+<div class="grid-2">
+  <article x-data="deviceForm()">
+    <header><strong>Dispositivo</strong></header>
+    <template x-if="data">
+      <div>
+        <label>Identificador (MQTT, Home Assistant) <input x-model="data.id"></label>
+        <label>Nombre <input x-model="data.name"></label>
+        <label>Zona horaria
+          <select x-model="data.timezone">
+            <template x-for="tz in zones" :key="tz"><option :value="tz" x-text="tz" :selected="tz === data.timezone"></option></template>
+          </select>
+        </label>
+        <button @click="save()" :aria-busy="saving">Guardar</button>
+      </div>
+    </template>
+  </article>
+
+  <article x-data="countingForm()">
+    <header><strong>Contadores</strong></header>
+    <template x-if="data">
+      <div>
+        <div class="grid">
+          <label>Reinicio diario (hora local) <input type="time" x-model="data.reset_time"></label>
+          <label>Límite de aforo (0 = sin límite) <input type="number" min="0" x-model.number="data.occupancy_limit"></label>
+        </div>
+        <button @click="save()" :aria-busy="saving">Guardar</button>
+        <hr>
+        <div class="row">
+          <label>Aforo inicial <input type="number" min="0" x-model.number="occupancy" class="narrow"></label>
+          <button class="outline contrast" @click="reset()">Reiniciar contadores ahora</button>
+        </div>
+      </div>
+    </template>
+  </article>
+
+  <article x-data="otaForm()">
+    <header><strong>Actualizaciones (OTA)</strong></header>
+    <template x-if="data">
+      <div>
+        <label>Repositorio git <input x-model="data.repo_url" placeholder="https://github.com/usuario/stella.git"></label>
+        <label>Rama <input x-model="data.branch"></label>
+        <button class="outline" @click="saveConfig()" :aria-busy="saving">Guardar</button>
+        <hr>
+        <p class="small" x-show="state">
+          Versión instalada: <code x-text="state && state.current ? state.current.slice(0, 8) : '–'"></code>
+          <span x-show="state && state.pending" class="badge">Pendiente de confirmar</span>
+          <br><span class="muted" x-text="state && state.message"></span>
+        </p>
+        <p class="small muted" x-show="!state" x-text="stateError || 'Cargando…'"></p>
+        <template x-if="state && state.commits && state.commits.length">
+          <ul class="small mono"><template x-for="c in state.commits"><li x-text="c"></li></template></ul>
+        </template>
+        <div class="toolbar">
+          <button class="outline" @click="check()" :aria-busy="checking">Buscar actualizaciones</button>
+          <button class="contrast" @click="apply()" :disabled="!(state && state.available)">Instalar</button>
+        </div>
+      </div>
+    </template>
+  </article>
+
+  <article x-data="ledsForm()">
+    <header><strong>LED RGB</strong></header>
+    <template x-if="data">
+      <div>
+        <div class="grid">
+          <label>Controlador
+            <select x-model="data.driver"><option value="gpio">GPIO (placa)</option><option value="none">Ninguno</option></select>
+          </label>
+          <label>Destello (s) <input type="number" step="0.1" min="0.1" x-model.number="data.flash_seconds"></label>
+        </div>
+        <table class="small leds">
+          <thead><tr><th>Estado</th><th>R</th><th>G</th><th>B</th><th></th></tr></thead>
+          <tbody>
+            <template x-for="key in Object.keys(labels)" :key="key">
+              <tr>
+                <td x-text="labels[key]"></td>
+                <template x-for="c in [0, 1, 2]"><td><input type="checkbox" :checked="data.colors[key][c]" @change="data.colors[key][c] = $event.target.checked ? 1 : 0"></td></template>
+                <td><span class="swatch" :style="swatch(data.colors[key])"></span></td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+        <button @click="save()" :aria-busy="saving">Guardar</button>
+      </div>
+    </template>
+  </article>
+
+  <article x-data="passwordForm()" id="seguridad">
+    <header><strong>Seguridad</strong></header>
+    <label>Usuario <input x-model="username" autocomplete="username"></label>
+    <label>Contraseña actual <input type="password" x-model="current" autocomplete="current-password"></label>
+    <label>Contraseña nueva (mín. 8) <input type="password" x-model="next" autocomplete="new-password"></label>
+    <label>Repetir contraseña nueva <input type="password" x-model="repeat" autocomplete="new-password"></label>
+    <button @click="save()" :aria-busy="saving">Cambiar contraseña</button>
+  </article>
+
+  <article x-data="actionsPanel()">
+    <header><strong>Acciones</strong></header>
+    <div class="toolbar">
+      <button class="outline" @click="restart()">Reiniciar Stella</button>
+      <button class="outline contrast" @click="reboot()">Reiniciar el equipo</button>
+    </div>
+    <details @toggle="$event.target.open && loadLogs()">
+      <summary>Registro</summary>
+      <button class="outline secondary small" @click="loadLogs()">Actualizar</button>
+      <pre class="logs" x-text="logs.join('\n')"></pre>
+    </details>
+  </article>
+</div>
+{% endblock %}
