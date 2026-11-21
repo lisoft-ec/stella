@@ -227,6 +227,32 @@ def network_scan():
         abort(503, "NetworkManager: %s" % exc)
 
 
+@api.route("/ota")
+def ota_state():
+    return jsonify(g.ctx.ota.state())
+
+
+@api.route("/ota/check", methods=["POST"])
+def ota_check():
+    from ..ota import OtaError
+
+    try:
+        return jsonify(g.ctx.ota.check())
+    except OtaError as exc:
+        abort(400, str(exc))
+
+
+@api.route("/ota/apply", methods=["POST"])
+def ota_apply():
+    from ..ota import OtaError
+
+    try:
+        state = g.ctx.ota.apply()
+    except OtaError as exc:
+        abort(400, str(exc))
+    return jsonify(dict(state, ok=True))
+
+
 @api.route("/logs")
 def logs():
     limit = min(400, max(1, request.args.get("limit", 200, type=int)))

@@ -19,7 +19,6 @@ def create_app(ctx):
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Lax",
         PERMANENT_SESSION_LIFETIME=datetime.timedelta(days=7),
-        JSON_SORT_KEYS=False,
         SEND_FILE_MAX_AGE_DEFAULT=3600,
     )
     app.extensions["stella"] = ctx

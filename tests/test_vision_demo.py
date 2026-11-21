@@ -16,7 +16,10 @@ DEMO = os.path.join(ROOT, "demo", "entrada002.webm")
 CPU_MODEL = "models/ssd_mobilenet_v2_coco_quant_postprocess.tflite"
 EXPECTED = os.path.join(ROOT, "tests", "data", "demo_expected.yaml")
 
-pytest.importorskip("ai_edge_litert")
+try:
+    import tflite_runtime  # noqa: F401  (board / Python 3.7)
+except ImportError:
+    pytest.importorskip("ai_edge_litert")  # PC
 
 
 @pytest.fixture

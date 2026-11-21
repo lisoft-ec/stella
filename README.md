@@ -1,0 +1,166 @@
+# Stella · contador de personas para Google Coral
+
+Stella cuenta las personas que **entran y salen** cruzando una línea, con una cámara y la **Coral Dev Board**:
+
+- **Detección:** OpenCV con MOG2 para detectar movimiento, y SSD MobileNet v2 en el Edge TPU para detectar personas.
+- **Registro:** guarda cada evento en SQLite.
+- **Publicación:** lo envía por **MQTT** (con discovery de Home Assistant) y por **webhook**, y lo expone en una **API REST**.
+- **Web:** interfaz para ver el vídeo en vivo, calibrar, configurar la red y actualizar el equipo.
+
+El mismo código corre en el **PC** (detector en CPU, vídeo de archivo o webcam) cambiando solo la configuración.
+
+## Estructura
+
+```
+stella/
+  config.py          configuración YAML (valores por defecto, validación, secretos)
+  pipeline.py        captura → MOG2 → detector → tracker → conteo
+  video/source.py    cámara V4L2 / archivo (OpenCV)
+  vision/            motion (MOG2), detector (TFLite + Edge TPU), tracker (IoU), counting (zona + línea)
+  counters.py        totales del día, aforo, reinicio diario
+  storage.py         SQLite: eventos y entregas pendientes
+  outbox.py          entrega con reintentos a MQTT y webhook
+  sinks/             mqtt.py, webhook.py
+  hw/                leds.py (LED RGB por GPIO), system.py (temperatura, IP, reinicio)
+  net/wifi.py        wifi, hotspot de respaldo y Ethernet con nmcli
+  ota.py             actualizaciones por git con rollback
+  web/               Flask: páginas, API /api/v1, vídeo MJPEG, SSE
+deploy/              install.sh, unidades systemd, rollback.sh
+models/              SSD MobileNet v2 COCO (Edge TPU y CPU)
+tests/               pytest (+ run_py37.sh para probar con las versiones de la placa)
+docs/coral-device.md ficha técnica de la placa
+```
+
+## Instalación en la placa
+
+Requisitos: Mendel 5 (Python 3.7, `python3-pycoral`, `python3-tflite-runtime`), el usuario `mendel` con sudo sin contraseña y acceso a PyPI.
+
+```bash
+git clone <url-del-repo> /home/mendel/stella
+```
+
+```bash
+cd /home/mendel/stella && ./deploy/install.sh
+```
+
+`install.sh` hace lo siguiente:
+- Crea el venv `/home/mendel/stella-venv` con acceso a los paquetes del sistema, para seguir viendo `pycoral` y `tflite_runtime`. Instala ahí pip 24.0, OpenCV 4.11, numpy 1.21 y las demás dependencias de `requirements-board.txt`.
+- Crea `/home/mendel/stella-data/config.yaml` a partir de `config.example.yaml`, con permisos 600. Si ya existe, no lo toca.
+- Instala y arranca los servicios `stella.service` y `stella-rollback.service`.
+
+Después abre `http://<ip-de-la-placa>:7777`. El usuario es **admin** y la contraseña inicial **stella**; la web pide cambiarla.
+
+```bash
+journalctl -u stella -f
+```
+
+## Desarrollo en el PC
+
+```bash
+python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
+```
+
+Crea `data/config.yaml` con el perfil PC (ver `config.example.yaml`), por ejemplo:
+
+```yaml
+camera: {source: demo/entrada002.webm, width: 1280, height: 720, loop: true}
+detector: {model: models/ssd_mobilenet_v2_coco_quant_postprocess.tflite, delegate: none}
+leds: {driver: none}
+network: {managed: false}
+```
+
+```bash
+.venv/bin/python -m stella --config data/config.yaml
+```
+
+Para procesar solo el vídeo e imprimir los cruces, sin web:
+
+```bash
+.venv/bin/python -m stella --config data/config.yaml --headless
+```
+
+### Tests
+
+```bash
+.venv/bin/python -m pytest
+```
+
+Con Python 3.7 y las versiones exactas de la placa (requiere Docker):
+
+```bash
+./tests/run_py37.sh "slow or not slow"
+```
+
+MQTT contra un broker real:
+
+```bash
+docker run --rm -d -p 1883:1883 eclipse-mosquitto:2 mosquitto -c /mosquitto-no-auth.conf
+```
+
+```bash
+STELLA_TEST_MQTT=localhost:1883 .venv/bin/python -m pytest tests/test_mqtt_broker.py
+```
+
+## Cómo cuenta
+
+1. MOG2 vigila la **zona** (polígono). Solo cuando hay movimiento se ejecuta el detector, y se apaga tras `motion.idle_frames` imágenes sin personas.
+2. Cada persona se sigue por solapamiento (IoU) entre imágenes.
+3. Se toma el **punto de los pies** (centro inferior de la caja). Si una persona aparece a un lado de la **línea** y desaparece al otro, cuenta como **entrada** o **salida** según el sentido marcado con la flecha verde en la web.
+
+## MQTT
+
+`<p>` es el prefijo de tópico e `<id>` el identificador del dispositivo.
+
+| Tópico | Contenido |
+|---|---|
+| `<p>/<id>/event` | un JSON por cruce (`uid`, `ts`, `direction` `in`/`out`, contadores) · QoS 1 |
+| `<p>/<id>/counters` | `{"day", "in", "out", "occupancy", "limit", "full"}` · retenido |
+| `<p>/<id>/status` | heartbeat: temperatura, IP, FPS, versión… · retenido |
+| `<p>/<id>/availability` | `online` / `offline` (last will) |
+| `<p>/<id>/cmd` | `reset_counters` o `{"command": "reset_counters", "occupancy": 0}`, `restart` |
+
+Los eventos se entregan **al menos una vez**: si el broker o el webhook no responden, quedan en SQLite y se reintentan. Cada evento lleva un `uid` único para descartar duplicados.
+
+## API REST
+
+Autenticación con `Authorization: Bearer <token>`; el token se ve y se regenera en *Integraciones*.
+
+| Método y ruta | Uso |
+|---|---|
+| `GET /api/v1/status` | estado general |
+| `GET /api/v1/counters` · `POST /api/v1/counters/reset` | contadores |
+| `GET /api/v1/events?since_id=&limit=` | historial de cruces |
+| `GET /api/v1/config[/sección]` · `PUT /api/v1/config/<sección>` | configuración (los secretos salen enmascarados) |
+| `GET /api/v1/stream` | SSE con detecciones y contadores en vivo |
+| `GET /api/v1/network/status` · `GET /api/v1/network/scan` | red |
+| `GET /api/v1/ota` · `POST /api/v1/ota/check` · `POST /api/v1/ota/apply` | actualizaciones |
+| `POST /api/v1/system/restart` · `POST /api/v1/system/reboot` | reinicios |
+
+## Actualizaciones (OTA)
+
+En *Sistema* se configuran el repositorio git y la rama. «Buscar actualizaciones» hace `git fetch` y lista los cambios. «Instalar» mueve el clon a la versión nueva, reinstala dependencias si cambiaron y reinicia Stella.
+
+Si la versión nueva falla 3 veces en 5 minutos, `stella-rollback.service` vuelve a la anterior. Si sigue funcionando pasados `ota.healthy_after` segundos (60), la actualización queda confirmada.
+
+> El clon de la placa es solo para desplegar: la OTA descarta cualquier cambio local (`git reset --hard`). La configuración y los datos viven fuera del repo, en `stella-data/`.
+
+## Red
+
+Con `network.managed: true`, Stella gestiona NetworkManager:
+- Crea una conexión `stella-wifi-<ssid>` por cada red del YAML, con su prioridad.
+- Configura la Ethernet (DHCP o IP fija).
+- Prepara el **hotspot de respaldo** (`StellaWIFI` por defecto). Lo activa si pasan `hotspot.timeout` segundos sin conexión, y cada `retry_interval` segundos vuelve a probar las redes conocidas, salvo que alguien esté usando la web.
+- Las conexiones USB gadget de la placa nunca se tocan.
+
+## LED RGB
+
+| Color | Significado |
+|---|---|
+| destello verde | entrada |
+| destello amarillo | salida |
+| rojo | error de cámara o detector, o aforo completo |
+| violeta | hotspot activo |
+| azul | sin red |
+| apagado | funcionamiento normal |
+
+Los colores se pueden cambiar en *Sistema*.

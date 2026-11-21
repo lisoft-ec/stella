@@ -1,0 +1,22 @@
+[Unit]
+Description=Stella - contador de personas
+After=network-online.target
+Wants=network-online.target
+# Three failures in five minutes: give up and run the OTA rollback.
+StartLimitIntervalSec=300
+StartLimitBurst=3
+OnFailure=stella-rollback.service
+
+[Service]
+Type=simple
+User=@USER@
+Group=@USER@
+WorkingDirectory=@REPO@
+Environment=PYTHONUNBUFFERED=1
+ExecStart=@VENV@/bin/python -m stella --config @DATA@/config.yaml
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=15
+
+[Install]
+WantedBy=multi-user.target

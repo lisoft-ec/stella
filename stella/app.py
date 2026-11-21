@@ -12,6 +12,7 @@ from .hw import system
 from .hw.leds import Leds
 from .logbuffer import LogBuffer
 from .net.wifi import Network
+from .ota import Ota
 from .outbox import Outbox
 from .pipeline import Pipeline
 from .sinks.mqtt import MqttSink
@@ -38,6 +39,7 @@ class App:
         self.pipeline = Pipeline(config, on_event=self.on_crossing, detector=detector)
         self.leds = Leds(config)
         self.network = Network(config, self.storage)
+        self.ota = Ota(config)
         self._network_status = {}
         self._start_pipeline = start_pipeline
         self._stop = threading.Event()
@@ -159,7 +161,9 @@ class App:
                 log.exception("Housekeeping failed")
 
     def tick(self):
-        """Called every second: update the LED conditions."""
+        """Called every second: confirm a pending OTA, update the LED conditions."""
+        if system.process_uptime() >= self.config.get("ota.healthy_after", 60) and self.ota.pending():
+            self.ota.mark_healthy()
         snap = self.pipeline.snapshot()
         self.leds.set_condition("error", bool(snap["error"]) and not self.pipeline.finished)
         self.leds.set_condition("full", self.counters.state()["full"])
