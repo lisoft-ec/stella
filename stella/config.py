@@ -154,7 +154,7 @@ DEFAULTS = {
     },
     "ota": {
         "repo_url": "",
-        "branch": "master",
+        "branch": "main",
         "service": "stella",
         "healthy_after": 60,
     },

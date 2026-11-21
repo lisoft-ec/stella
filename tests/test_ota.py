@@ -27,14 +27,14 @@ def commit(repo, name, content):
 def repos(tmp_path):
     upstream = tmp_path / "upstream"
     upstream.mkdir()
-    git(upstream, "init", "-q", "-b", "master")
+    git(upstream, "init", "-q", "-b", "main")
     first = commit(upstream, "a.txt", "1")
     device = tmp_path / "device"
     subprocess.run(["git", "clone", "-q", str(upstream), str(device)], check=True)
     data = tmp_path / "data"
     data.mkdir()
     config = Config(str(data / "config.yaml")).load()
-    config.update_section("ota", {"repo_url": str(upstream), "branch": "master"})
+    config.update_section("ota", {"repo_url": str(upstream), "branch": "main"})
     return upstream, device, config, first
 
 

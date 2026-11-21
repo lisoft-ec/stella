@@ -97,7 +97,7 @@ class Ota:
     def check(self):
         with self._lock:
             self._remote()
-            branch = self.config.get("ota.branch") or "master"
+            branch = self.config.get("ota.branch") or "main"
             self.git("fetch", "--quiet", "origin", branch)
             target = self.git("rev-parse", "FETCH_HEAD")
             commits = self.git("log", "--oneline", "-20", "HEAD..%s" % target)
