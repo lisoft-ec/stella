@@ -124,4 +124,4 @@ def test_static_assets_are_versioned_by_content(client, tmp_path):
     login(client)
     page = client.get("/").get_data(as_text=True)
     assert "app.js?v=" in page and "?v=2.0.0" not in page
-    assert "Silttec | Lisoft" in page
+    assert "Lisoft ® 2026. Derechos reservados." in page
