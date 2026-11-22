@@ -1,0 +1,15 @@
+# Dependencias para desarrollar y probar en el PC (CPU, sin Edge TPU).
+# Flask/Werkzeug 3.x aquí porque 2.2 (placa, Python 3.7) no funciona en Python >= 3.12.
+# La paridad con la placa se prueba con: tests/run_py37.sh
+numpy
+opencv-python-headless==4.11.0.86
+ai-edge-litert
+Flask>=3.0
+Werkzeug>=3.0
+waitress
+paho-mqtt==1.6.1
+PyYAML
+python-periphery==2.4.1
+requests
+pytest
+vermin

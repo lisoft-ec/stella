@@ -1,6 +1,7 @@
-__pycache__/*.pyc
-edgetpu/__pycache__/*.pyc
-edgetpu/basic/__pycache__/*.pyc
-edgetpu/detection/__pycache__/*.pyc
-edgetpu/swig/__pycache__/*.pyc
-edgetpu/utils/__pycache__/*.pyc
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+data/
+.claude/work/
+.claude/settings.local.json

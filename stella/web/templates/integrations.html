@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Integraciones{% endblock %}
+{% block content %}
+<h2>Integraciones</h2>
+<div class="grid-2">
+  <article x-data="mqttForm()">
+    <header><strong>MQTT</strong></header>
+    <template x-if="data">
+      <div>
+        <label><input type="checkbox" role="switch" x-model="data.enabled"> Activado</label>
+        <div class="grid">
+          <label>Broker <input x-model="data.host" placeholder="broker.local"></label>
+          <label>Puerto <input type="number" x-model.number="data.port"></label>
+        </div>
+        <div class="grid">
+          <label>Usuario <input x-model="data.username" autocomplete="off"></label>
+          <label>Contraseña <input type="password" x-model="data.password" autocomplete="new-password"></label>
+        </div>
+        <div class="grid">
+          <label>Prefijo de tópico <input x-model="data.topic_prefix"></label>
+          <label>Estado cada (s) <input type="number" min="5" x-model.number="data.status_interval"></label>
+        </div>
+        <label><input type="checkbox" role="switch" x-model="data.homeassistant"> Discovery de Home Assistant</label>
+        <label x-show="data.homeassistant">Prefijo de discovery <input x-model="data.discovery_prefix"></label>
+        <details>
+          <summary class="small">Tópicos</summary>
+          <ul class="small mono">
+            <template x-for="t in topics()"><li x-text="t"></li></template>
+          </ul>
+        </details>
+        <div class="toolbar">
+          <button class="outline" @click="test()" :aria-busy="testing">Probar conexión</button>
+          <button @click="save()" :aria-busy="saving">Guardar</button>
+        </div>
+      </div>
+    </template>
+  </article>
+
+  <article x-data="webhookForm()">
+    <header><strong>Webhook</strong></header>
+    <template x-if="data">
+      <div>
+        <label><input type="checkbox" role="switch" x-model="data.enabled"> Activado</label>
+        <label>URL <input x-model="data.url" placeholder="https://servidor/aforo/eventos"></label>
+        <label>Tiempo de espera (s) <input type="number" min="1" max="60" x-model.number="data.timeout"></label>
+        <fieldset>
+          <legend class="small">Cabeceras HTTP</legend>
+          <template x-for="(h, i) in headers" :key="i">
+            <div class="row">
+              <input x-model="h.key" placeholder="Authorization">
+              <input x-model="h.value" placeholder="Bearer …">
+              <button class="outline secondary small" @click="headers.splice(i, 1)">✕</button>
+            </div>
+          </template>
+          <button class="outline secondary small" @click="headers.push({key: '', value: ''})">Añadir cabecera</button>
+        </fieldset>
+        <p class="small muted">Cada cruce se envía como <code>POST</code> con un JSON que incluye un <code>uid</code> único.</p>
+        <div class="toolbar">
+          <button class="outline" @click="test()" :aria-busy="testing">Enviar prueba</button>
+          <button @click="save()" :aria-busy="saving">Guardar</button>
+        </div>
+      </div>
+    </template>
+  </article>
+
+  <article x-data="tokenForm()">
+    <header><strong>API REST</strong></header>
+    <p class="small">Autenticación: cabecera <code>Authorization: Bearer &lt;token&gt;</code>.</p>
+    <div class="row">
+      <input readonly :type="show ? 'text' : 'password'" :value="token" class="mono">
+      <button class="outline secondary small" @click="toggle()" x-text="show ? 'Ocultar' : 'Mostrar'"></button>
+    </div>
+    <button class="outline contrast" @click="regenerate()">Generar token nuevo</button>
+    <details>
+      <summary class="small">Endpoints</summary>
+      <ul class="small mono">
+        <li>GET /api/v1/status</li>
+        <li>GET /api/v1/counters</li>
+        <li>POST /api/v1/counters/reset</li>
+        <li>GET /api/v1/events?since_id=&amp;limit=</li>
+        <li>GET /api/v1/config[/sección]</li>
+        <li>PUT /api/v1/config/sección</li>
+        <li>GET /api/v1/stream (SSE)</li>
+        <li>POST /api/v1/system/restart</li>
+      </ul>
+      <p class="small">Ejemplo: <code class="mono" x-text="'curl -H &quot;Authorization: Bearer ' + (show ? token : '…') + '&quot; ' + location.origin + '/api/v1/counters'"></code></p>
+    </details>
+  </article>
+</div>
+{% endblock %}

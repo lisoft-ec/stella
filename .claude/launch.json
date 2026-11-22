@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "stella-pc",
+      "runtimeExecutable": ".venv/bin/python",
+      "runtimeArgs": ["-m", "stella", "--config", "data/config.yaml"],
+      "port": 7777
+    }
+  ]
+}

@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}Red{% endblock %}
+{% block content %}
+<h2>Red</h2>
+<div x-data="networkForm()">
+  <article class="banner info" x-show="data && !data.managed">
+    La gestión de red está desactivada: Stella no modifica NetworkManager (modo PC/desarrollo).
+    <label><input type="checkbox" role="switch" :checked="data && data.managed" @change="data.managed = $event.target.checked; save()"> Activar gestión de red</label>
+  </article>
+
+  <div class="grid-2">
+    <article>
+      <header><strong>Conectar a una red wifi</strong></header>
+      <template x-if="data">
+        <div>
+          <label>Nombre de la red (SSID)
+            <input x-model="form.ssid" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Exactamente como se llama la red">
+          </label>
+          <label>Clave
+            <div class="row">
+              <input :type="showPassword ? 'text' : 'password'" x-model="form.password" autocomplete="new-password" placeholder="Vacía si la red es abierta">
+              <button type="button" class="outline secondary small" @click="showPassword = !showPassword" x-text="showPassword ? 'Ocultar' : 'Ver'"></button>
+            </div>
+          </label>
+          <label><input type="checkbox" x-model="form.hidden"> Red oculta (no aparece en la lista de redes)</label>
+          <button @click="connect()" :aria-busy="saving">Guardar y conectar</button>
+          <p class="banner info small" x-show="notice" x-text="notice"></p>
+          <p class="small muted" x-show="!notice">Si la placa está en el hotspot, se desconectará de él para unirse a esta red.</p>
+        </div>
+      </template>
+    </article>
+
+    <article>
+      <header><strong>Estado</strong> <button class="outline secondary small right" @click="loadStatus()">Actualizar</button></header>
+      <template x-if="status">
+        <div>
+          <p x-show="!status.managed" class="muted small">Sin datos: la gestión de red está desactivada.</p>
+          <p x-show="status.managed">
+            <span class="dot" :class="status.connected ? 'ok' : 'bad'"></span>
+            <span x-text="status.connected ? 'Conectado' : 'Sin conexión'"></span>
+            <span class="badge" x-show="status.hotspot_active">Hotspot activo</span>
+          </p>
+          <table class="small">
+            <thead><tr><th>Interfaz</th><th>Conexión</th><th>IP</th></tr></thead>
+            <tbody>
+              <template x-for="d in status.devices">
+                <tr><td x-text="d.device"></td><td x-text="d.connection || d.state"></td><td class="mono" x-text="d.ip || '–'"></td></tr>
+              </template>
+            </tbody>
+          </table>
+          <p class="small">Desde otro equipo de la misma red: <a :href="webUrl()" class="mono" x-text="webUrl()"></a></p>
+        </div>
+      </template>
+      <p class="muted small" x-show="!status" x-text="statusError || 'Cargando…'"></p>
+    </article>
+  </div>
+
+  <template x-if="data">
+    <div>
+      <article>
+        <header><strong>Redes guardadas</strong></header>
+        <p class="small muted" x-show="!data.wifi.length">Ninguna todavía. Sin red conocida, la placa crea el hotspot <code x-text="data.hotspot.ssid"></code>.</p>
+        <table class="small" x-show="data.wifi.length">
+          <thead><tr><th>Red</th><th>Prioridad</th><th></th></tr></thead>
+          <tbody>
+            <template x-for="(w, i) in data.wifi" :key="w.ssid">
+              <tr>
+                <td><span x-text="w.ssid"></span> <span class="badge" x-show="w.hidden">oculta</span> <span class="badge" x-show="!w.password">abierta</span></td>
+                <td x-text="w.priority"></td>
+                <td><button class="outline secondary small" @click="forget(i)">Olvidar</button></td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+        <p class="small muted" x-show="data.wifi.length > 1">Si hay varias disponibles, la placa elige la de mayor prioridad (la última añadida).</p>
+      </article>
+
+      <div class="grid-2">
+        <article>
+          <header><strong>Hotspot de respaldo</strong></header>
+          <label><input type="checkbox" role="switch" x-model="data.hotspot.enabled"> Crear un punto de acceso si no hay conexión</label>
+          <div class="grid">
+            <label>SSID <input x-model="data.hotspot.ssid"></label>
+            <label>Clave <input type="text" x-model="data.hotspot.password" autocomplete="off" class="mono"></label>
+          </div>
+          <div class="grid">
+            <label>Esperar antes de activarlo (s) <input type="number" min="15" x-model.number="data.hotspot.timeout"></label>
+            <label>Reintentar redes guardadas cada (s) <input type="number" min="30" x-model.number="data.hotspot.retry_interval"></label>
+          </div>
+          <p class="small muted">Conectado al hotspot, la placa está en <code>http://10.42.0.1:7777</code>.</p>
+          <button @click="save()" :aria-busy="saving">Guardar</button>
+        </article>
+
+        <article>
+          <header><strong>Ethernet</strong></header>
+          <p class="small muted">Con cable, la placa pide IP al router (DHCP) y deja el hotspot en unos segundos.</p>
+          <label>Modo
+            <select x-model="data.ethernet.method">
+              <option value="auto">Automático (DHCP)</option>
+              <option value="manual">IP fija</option>
+            </select>
+          </label>
+          <template x-if="data.ethernet.method === 'manual'">
+            <div>
+              <label>Dirección (CIDR) <input x-model="data.ethernet.address" placeholder="192.168.0.30/24"></label>
+              <label>Puerta de enlace <input x-model="data.ethernet.gateway" placeholder="192.168.0.1"></label>
+              <label>DNS <input x-model="data.ethernet.dns" placeholder="8.8.8.8 1.1.1.1"></label>
+            </div>
+          </template>
+          <button @click="save()" :aria-busy="saving">Guardar</button>
+        </article>
+      </div>
+    </div>
+  </template>
+</div>
+{% endblock %}

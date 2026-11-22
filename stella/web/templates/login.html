@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Entrar{% endblock %}
+{% block body %}
+<main class="container login">
+  <article>
+    <header class="center">
+      <img src="{{ url_for('static', filename='favicon.png') }}" alt="" width="72" height="63">
+      <h2>Stella</h2>
+      <p class="muted">{{ device_name }} · {{ device_id }}</p>
+    </header>
+    <form method="post">
+      <label>Usuario
+        <input name="username" autocomplete="username" required autofocus>
+      </label>
+      <label>Contraseña
+        <input name="password" type="password" autocomplete="current-password" required>
+      </label>
+      {% if error %}<p class="error">{{ error }}</p>{% endif %}
+      <button type="submit">Entrar</button>
+    </form>
+  </article>
+</main>
+{% endblock %}

@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Calibración{% endblock %}
+{% block content %}
+<h2>Calibración</h2>
+<div class="grid-main">
+  <section x-data="calibration()">
+    <div class="toolbar">
+      <div role="group">
+        <button :class="mode === 'roi' ? '' : 'outline'" @click="mode = 'roi'">Zona</button>
+        <button :class="mode === 'line' ? '' : 'outline'" @click="mode = 'line'">Línea</button>
+      </div>
+      <button class="outline secondary" @click="invert = !invert">Invertir sentido</button>
+    </div>
+    {% include "_video.html" %}
+    <p class="small muted" x-show="mode === 'roi'">
+      Zona: clic para añadir un punto, arrastra los puntos para moverlos, doble clic sobre un punto para quitarlo.
+    </p>
+    <p class="small muted" x-show="mode === 'line'">
+      Línea: arrastra sus extremos. La flecha verde indica el sentido que cuenta como <strong>entrada</strong>.
+    </p>
+    <div class="toolbar">
+      <button class="outline secondary" @click="fullRoi()">Zona = imagen completa</button>
+      <button class="outline secondary" @click="roi = []; mode = 'roi'">Dibujar zona nueva</button>
+      <button @click="save()" :aria-busy="saving">Guardar zona y línea</button>
+    </div>
+  </section>
+
+  <aside>
+    <article x-data="section('detector')">
+      <header><strong>Detección</strong></header>
+      <template x-if="data">
+        <div>
+          <label>Umbral de confianza <span x-text="data.threshold"></span>
+            <input type="range" min="0.2" max="0.9" step="0.05" x-model.number="data.threshold">
+          </label>
+          <label>Máximo de personas por imagen
+            <input type="number" min="1" max="50" x-model.number="data.max_objects">
+          </label>
+          <label>Acelerador
+            <select x-model="data.delegate">
+              <option value="edgetpu">Edge TPU (placa Coral)</option>
+              <option value="none">CPU</option>
+            </select>
+          </label>
+          <label>Modelo <input x-model="data.model"></label>
+          <button @click="save()" :aria-busy="saving">Guardar</button>
+        </div>
+      </template>
+    </article>
+
+    <article x-data="section('motion')">
+      <header><strong>Movimiento (MOG2)</strong></header>
+      <template x-if="data">
+        <div>
+          <label><input type="checkbox" role="switch" x-model="data.enabled"> Detectar solo con movimiento</label>
+          <label>Umbral de movimiento (% de píxeles) <span x-text="data.threshold_percent"></span>
+            <input type="range" min="0.1" max="10" step="0.1" x-model.number="data.threshold_percent">
+          </label>
+          <label>Imágenes sin personas antes de reposar
+            <input type="number" min="1" max="300" x-model.number="data.idle_frames">
+          </label>
+          <button @click="save()" :aria-busy="saving">Guardar</button>
+        </div>
+      </template>
+    </article>
+
+    <article x-data="section('tracking')">
+      <header><strong>Seguimiento</strong></header>
+      <template x-if="data">
+        <div>
+          <label>Solapamiento mínimo (IoU) <span x-text="data.iou_threshold"></span>
+            <input type="range" min="0.05" max="0.8" step="0.05" x-model.number="data.iou_threshold">
+          </label>
+          <label>Imágenes perdidas antes de cerrar a una persona
+            <input type="number" min="1" max="60" x-model.number="data.max_missing">
+          </label>
+          <button @click="save()" :aria-busy="saving">Guardar</button>
+        </div>
+      </template>
+    </article>
+
+    <article x-data="section('camera')">
+      <header><strong>Cámara</strong></header>
+      <template x-if="data">
+        <div>
+          <label>Fuente <input x-model="data.source" placeholder="/dev/video0, 0 o ruta de vídeo"></label>
+          <div class="grid">
+            <label>Ancho <input type="number" x-model.number="data.width"></label>
+            <label>Alto <input type="number" x-model.number="data.height"></label>
+            <label>FPS <input type="number" x-model.number="data.fps"></label>
+          </div>
+          <label><input type="checkbox" role="switch" x-model="data.flip_x"> Voltear horizontal</label>
+          <label><input type="checkbox" role="switch" x-model="data.flip_y"> Voltear vertical</label>
+          <button @click="save()" :aria-busy="saving">Guardar</button>
+        </div>
+      </template>
+    </article>
+  </aside>
+</div>
+{% endblock %}

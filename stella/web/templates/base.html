@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <meta name="device-id" content="{{ device_id }}">
+  <title>{% block title %}{{ device_name }}{% endblock %} · Stella</title>
+  <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='vendor/pico.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v={{ assets }}">
+  <script defer src="{{ url_for('static', filename='app.js') }}?v={{ assets }}"></script>
+  <script defer src="{{ url_for('static', filename='vendor/alpine.min.js') }}"></script>
+</head>
+<body>
+  {% block body %}
+  <header class="topbar">
+    <nav class="container-fluid">
+      <ul>
+        <li><a href="{{ url_for('views.dashboard') }}" class="brand">
+          <img src="{{ url_for('static', filename='favicon.png') }}" alt="" width="28" height="24">
+          <strong>Stella</strong> <small class="muted">{{ device_id }}</small>
+        </a></li>
+      </ul>
+      <ul class="nav-links">
+        {% for endpoint, label in pages %}
+        <li><a href="{{ url_for(endpoint) }}" {% if page == endpoint %}aria-current="page"{% endif %}>{{ label }}</a></li>
+        {% endfor %}
+        <li>
+          <form method="post" action="{{ url_for('views.logout') }}" class="inline">
+            <input type="hidden" name="csrf" value="{{ csrf_token }}">
+            <button type="submit" class="outline secondary small">Salir</button>
+          </form>
+        </li>
+      </ul>
+    </nav>
+  </header>
+  <main class="container">
+    {% if default_password and page != 'views.system_page' %}
+    <article class="banner warn">
+      Estás usando la contraseña inicial. <a href="{{ url_for('views.system_page') }}#seguridad">Cámbiala en Sistema</a>.
+    </article>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="container muted small">Stella {{ version }} - Silttec | Lisoft ® 2026. Derechos reservados.</footer>
+  {% endblock %}
+  <div id="toasts" aria-live="polite"></div>
+</body>
+</html>

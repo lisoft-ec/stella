@@ -1,0 +1,9 @@
+[Unit]
+Description=Stella - volver a la versión anterior tras una actualización fallida
+
+[Service]
+Type=oneshot
+User=@USER@
+Group=@USER@
+Environment=STELLA_REPO=@REPO@ STELLA_DATA=@DATA@ STELLA_VENV=@VENV@
+ExecStart=/bin/sh @REPO@/deploy/rollback.sh
