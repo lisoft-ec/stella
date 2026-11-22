@@ -69,7 +69,7 @@
           <label><input type="checkbox" role="switch" x-model="data.hotspot.enabled"> Crear un punto de acceso si no hay conexión</label>
           <div class="grid">
             <label>SSID <input x-model="data.hotspot.ssid"></label>
-            <label>Clave <input type="password" x-model="data.hotspot.password" autocomplete="new-password"></label>
+            <label>Clave <input type="text" x-model="data.hotspot.password" autocomplete="off" class="mono"></label>
           </div>
           <div class="grid">
             <label>Esperar antes de activarlo (s) <input type="number" min="15" x-model.number="data.hotspot.timeout"></label>

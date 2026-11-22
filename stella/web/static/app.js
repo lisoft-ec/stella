@@ -153,6 +153,13 @@ document.addEventListener('alpine:init', () => {
       if (!this.$refs.canvas) return;
       drawScene(this.$refs.canvas, { roi: this.roi, line: this.line, invert: this.invert, tracks: this.pipeline.tracks });
     },
+    async resetCounters() {
+      if (!confirm('¿Poner a cero las entradas, salidas y el aforo de hoy?')) return;
+      try {
+        this.counters = await api('POST', '/api/v1/counters/reset', { occupancy: 0 });
+        toast('Conteo reiniciado');
+      } catch (e) { toast(e.message, 'error'); }
+    },
     mqttClass() { return !this.status.mqtt || !this.status.mqtt.enabled ? 'off' : this.status.mqtt.connected ? 'ok' : 'bad'; },
     mqttText() { return !this.status.mqtt || !this.status.mqtt.enabled ? 'desactivado' : this.status.mqtt.connected ? 'conectado' : 'desconectado'; },
     duration,
@@ -347,6 +354,20 @@ document.addEventListener('alpine:init', () => {
   Alpine.data('ledsForm', sectionForm('leds', {
     labels: { entry: 'Entrada', exit: 'Salida', no_network: 'Sin red', hotspot: 'Hotspot activo', error: 'Error', full: 'Aforo completo' },
     swatch(c) { return 'background: rgb(' + c.map((v) => (v ? 255 : 30)).join(',') + ')'; },
+    driver: '',
+    ledResult(r, what) {
+      this.driver = r.driver;
+      if (r.driver === 'none') toast('No hay controlador de LED activo (driver: ninguno)', 'error');
+      else toast(what);
+    },
+    async test(color) {
+      try { this.ledResult(await api('POST', '/api/v1/leds/test', { color, seconds: 3 }), 'LED encendido 3 s'); }
+      catch (e) { toast(e.message, 'error'); }
+    },
+    async sequence() {
+      try { this.ledResult(await api('POST', '/api/v1/leds/test', { sequence: true }), 'Rojo, verde, azul y blanco'); }
+      catch (e) { toast(e.message, 'error'); }
+    },
   }));
 
   Alpine.data('otaForm', sectionForm('ota', {
@@ -398,6 +419,16 @@ document.addEventListener('alpine:init', () => {
       if (!confirm('¿Reiniciar el equipo completo?')) return;
       try { const r = await api('POST', '/api/v1/system/reboot'); toast(r.message); }
       catch (e) { toast(e.message, 'error'); }
+    },
+    async factoryReset() {
+      const word = prompt('Se borrarán las redes wifi, el historial, los contadores y la configuración.\n' +
+                          'Escribe RESTAURAR para confirmar:');
+      if (word === null) return;
+      try {
+        const r = await api('POST', '/api/v1/system/factory-reset', { confirm: word.trim() });
+        toast(r.message);
+        document.body.classList.add('resetting');
+      } catch (e) { toast(e.message, 'error'); }
     },
   }));
 });

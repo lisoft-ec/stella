@@ -78,3 +78,15 @@ pre.logs { max-height: 24rem; overflow: auto; font-size: .75rem; white-space: pr
 #toasts { position: fixed; right: 1rem; bottom: 1rem; display: flex; flex-direction: column; gap: .5rem; z-index: 1000; }
 .toast { padding: .6rem 1rem; border-radius: var(--pico-border-radius); color: #fff; background: #2d7d46; box-shadow: 0 4px 12px rgba(0, 0, 0, .3); max-width: 24rem; }
 .toast.error { background: #b03a2e; }
+
+/* Sistema: paneles de 2 columnas con la misma altura por fila */
+.panels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; align-items: stretch; }
+.panels > article { display: flex; flex-direction: column; margin-bottom: 0; }
+.panels > article > .panel-body, .panels > article > template + .panel-body { display: flex; flex-direction: column; flex: 1; }
+.panels > article.wide { grid-column: 1 / -1; }
+.panel-actions { margin-top: auto; display: flex; flex-wrap: wrap; gap: .5rem; padding-top: .75rem; }
+.panel-actions > button { width: auto; margin-bottom: 0; }
+@media (max-width: 900px) { .panels { grid-template-columns: 1fr; } }
+button.danger { background: #b03a2e; border-color: #b03a2e; color: #fff; }
+.toolbar.end { justify-content: flex-end; margin-top: -.5rem; }
+body.resetting main { opacity: .5; pointer-events: none; }

@@ -161,6 +161,7 @@ def test_hotspot_after_timeout_and_retry(config, storage, monkeypatch):
     net = network(config, storage, nm, clock)
     config.update_section("network", {"wifi": [{"ssid": "Casa", "password": "clave-casa"}],
                                       "hotspot": {"timeout": 60, "retry_interval": 300}}, notify=False)
+    nm.connections["stella-wifi-Casa"] = "802-11-wireless"  # as created by apply()
     net.check()                      # first time without connection
     clock.t += 30
     net.check()
@@ -194,3 +195,65 @@ def test_hotspot_dropped_when_ethernet_connects(config, storage):
     nm.active["eth0"] = "Wired connection 1"
     net.check()
     assert "wlan0" not in nm.active
+
+
+def test_led_preview_wins_and_expires(config):
+    leds = Leds(config)
+    leds.set_condition("error", True)
+    leds.flash("entry")
+    leds.preview([1, 1, 1], seconds=5)
+    assert leds.desired() == (1, 1, 1)
+    assert leds.desired(now=10 ** 9) == tuple(config.get("leds.colors")["error"])
+    assert leds.driver == "none"
+
+
+def test_hotspot_retries_networks_created_outside_stella(config, storage, monkeypatch):
+    nm, clock = FakeNmcli(), Clock()
+    nm.connections["WIFI-IOT"] = "802-11-wireless"   # not in Stella's YAML
+    net = network(config, storage, nm, clock)
+    config.update_section("network", {"hotspot": {"timeout": 30, "retry_interval": 60}}, notify=False)
+    nm.active["wlan0"] = HOTSPOT
+    net.check()
+    clock.t += 61
+
+    def fake_wait(seconds):
+        nm.active["wlan0"] = "WIFI-IOT"
+        clock.t += seconds
+        return False
+    monkeypatch.setattr(net._stop, "wait", fake_wait)
+    net.check()
+    assert nm.active["wlan0"] == "WIFI-IOT"
+
+
+def test_no_retry_without_any_wifi(config, storage):
+    nm, clock = FakeNmcli(), Clock()
+    net = network(config, storage, nm, clock)
+    nm.active["wlan0"] = HOTSPOT
+    net.check()
+    clock.t += 10 ** 6
+    net.check()
+    assert nm.active["wlan0"] == HOTSPOT
+    assert not any(c[:2] == ("connection", "down") for c in nm.calls)
+
+
+def test_delete_all_wifi_keeps_usb_and_ethernet(config, storage):
+    nm = FakeNmcli()
+    nm.connections.update({"WIFI-IOT": "802-11-wireless", "stella-wifi-Casa": "802-11-wireless",
+                           HOTSPOT: "802-11-wireless"})
+    net = network(config, storage, nm)
+    removed = net.delete_all_wifi()
+    assert sorted(removed) == sorted(["WIFI-IOT", "stella-wifi-Casa", HOTSPOT])
+    assert set(nm.connections) == {"Wired connection 1", "gadget0"}
+
+
+def test_status_is_cached_for_the_leds(config, storage):
+    nm = FakeNmcli()
+    net = network(config, storage, nm)
+    assert net.last_status == {}
+    net.check()
+    assert net.last_status["managed"] is True
+
+
+def test_nmcli_runs_without_sudo_by_default(config, storage):
+    net = Network(config, storage)
+    assert net.nmcli.use_sudo is False

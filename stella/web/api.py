@@ -205,6 +205,44 @@ def reboot():
     return jsonify(ok=True, message="Reiniciando el equipo…")
 
 
+@api.route("/system/factory-reset", methods=["POST"])
+def factory_reset():
+    import threading
+
+    from ..factory import CONFIRM_WORD
+
+    session_only()
+    if body().get("confirm") != CONFIRM_WORD:
+        abort(400, "Escribe %s para confirmar" % CONFIRM_WORD)
+    ctx = g.ctx
+
+    def run():
+        time.sleep(1.0)  # let the HTTP response go out first
+        ctx.factory_reset()
+
+    threading.Thread(target=run, name="factory-reset", daemon=True).start()
+    hotspot = ctx.config.get("network.managed")
+    message = "Restaurando la configuración de fábrica. Stella se reiniciará"
+    if hotspot:
+        message += "; en unos 2 minutos aparecerá la red wifi StellaWIFI (clave stella1234)"
+    return jsonify(ok=True, message=message + ".")
+
+
+@api.route("/leds/test", methods=["POST"])
+def leds_test():
+    data = body()
+    leds = g.ctx.leds
+    if data.get("sequence"):
+        leds.test_sequence()
+    else:
+        color = data.get("color")
+        if not (isinstance(color, list) and len(color) == 3):
+            abort(400, "color debe ser [r, g, b]")
+        seconds = min(10.0, max(0.5, float(data.get("seconds", 3))))
+        leds.preview([int(bool(c)) for c in color], seconds)
+    return jsonify(ok=True, driver=leds.driver)
+
+
 @api.route("/network/status")
 def network_status():
     from ..net.wifi import NmcliError

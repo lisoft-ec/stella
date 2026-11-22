@@ -24,7 +24,6 @@ SECRET_KEYS = (
     "web.secret_key",
     "api.token",
     "mqtt.password",
-    "network.hotspot.password",
 )
 
 DEFAULTS = {
@@ -117,7 +116,8 @@ DEFAULTS = {
     "network": {
         # When False Stella never touches NetworkManager (PC / development).
         "managed": False,
-        "use_sudo": True,
+        # The board user is in the "netdev" group: polkit lets it use nmcli without sudo.
+        "use_sudo": False,
         "interface": "wlan0",
         "wifi": [],  # [{ssid, password, priority}]
         "hotspot": {

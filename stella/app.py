@@ -40,7 +40,6 @@ class App:
         self.leds = Leds(config)
         self.network = Network(config, self.storage)
         self.ota = Ota(config)
-        self._network_status = {}
         self._start_pipeline = start_pipeline
         self._stop = threading.Event()
         self._event_seq = 0
@@ -168,13 +167,8 @@ class App:
         self.leds.set_condition("error", bool(snap["error"]) and not self.pipeline.finished)
         self.leds.set_condition("full", self.counters.state()["full"])
         if self.network.managed():
-            if not hasattr(self, "_net_t") or time.monotonic() - self._net_t >= 10:
-                self._net_t = time.monotonic()
-                try:
-                    self._network_status = self.network.status()
-                except Exception:
-                    self._network_status = {}
-            st = self._network_status
+            # Refreshed every 10 s by the network monitor thread (no extra nmcli call here).
+            st = self.network.last_status
             self.leds.set_condition("hotspot", bool(st.get("hotspot_active")))
             self.leds.set_condition("no_network", st.get("connected") is False and not st.get("hotspot_active"))
         else:
@@ -193,7 +187,19 @@ class App:
         threading.Thread(target=self._housekeeping, name="housekeeping", daemon=True).start()
         return self
 
+    def factory_reset(self, restart=True):
+        """Forget Wi-Fi, data and configuration, then restart (see stella/factory.py)."""
+        from .factory import factory_reset
+
+        service = self.config.get("ota.service", "stella")
+        summary = factory_reset(self.config, self.network, release=self.stop)
+        if restart:
+            system.restart_service(service)
+        return summary
+
     def stop(self):
+        if self._stop.is_set():
+            return
         self._stop.set()
         self.network.stop()
         self.leds.stop()

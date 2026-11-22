@@ -149,8 +149,40 @@ Si la versión nueva falla 3 veces en 5 minutos, `stella-rollback.service` vuelv
 Con `network.managed: true`, Stella gestiona NetworkManager:
 - Crea una conexión `stella-wifi-<ssid>` por cada red del YAML, con su prioridad.
 - Configura la Ethernet (DHCP o IP fija).
-- Prepara el **hotspot de respaldo** (`StellaWIFI` por defecto). Lo activa si pasan `hotspot.timeout` segundos sin conexión, y cada `retry_interval` segundos vuelve a probar las redes conocidas, salvo que alguien esté usando la web.
+- Prepara el **hotspot de respaldo** (`StellaWIFI` por defecto, web en `http://10.42.0.1:7777`). Lo activa si pasan `hotspot.timeout` segundos sin conexión, y cada `retry_interval` segundos vuelve a probar las redes wifi guardadas (las de Stella y cualquier otra), salvo que alguien esté usando la web.
 - Las conexiones USB gadget de la placa nunca se tocan.
+- Stella usa `nmcli` sin `sudo`: el usuario `mendel` pertenece al grupo `netdev`, y polkit le da los permisos necesarios.
+
+### Red USB
+
+Mendel trae por defecto la interfaz USB en `192.168.100.2/24`. Si la red local también es `192.168.100.0/24`, la placa responde a la LAN por el cable USB y, sin el cable, parece que no tiene red. Por eso `install.sh` ejecuta `deploy/usb-subnet.sh`, que mueve la interfaz USB a **`192.168.200.2`** (y `usb1` a `192.168.201.2`) en NetworkManager y en el DHCP de dnsmasq. Por cable USB la placa queda en:
+
+```bash
+ssh mendel@192.168.200.2
+```
+
+## Restaurar fábrica
+
+En *Sistema → Acciones → Restaurar fábrica* (hay que escribir `RESTAURAR` para confirmar), o por SSH:
+
+```bash
+sudo systemctl stop stella
+```
+
+```bash
+/home/mendel/stella-venv/bin/python -m stella --config /home/mendel/stella-data/config.yaml --factory-reset
+```
+
+```bash
+sudo systemctl start stella
+```
+
+Qué hace:
+- Borra **todas** las conexiones wifi de NetworkManager, también las creadas fuera de Stella. No toca USB ni Ethernet.
+- Borra `events.db` (historial, contadores y envíos pendientes).
+- Sustituye `config.yaml` por `stella-data/factory.yaml` si existe; si no, por `config.example.yaml`. El usuario y la contraseña vuelven a `admin` / `stella`, y se genera un token nuevo.
+
+Sin ninguna red conocida, a los 90 segundos aparece el hotspot **StellaWIFI** (clave `stella1234`). La web queda en `http://10.42.0.1:7777`, y desde *Red* se añade la wifi definitiva.
 
 ## LED RGB
 

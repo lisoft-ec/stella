@@ -62,3 +62,8 @@ sleep 5
 systemctl --no-pager --lines=15 status stella.service || true
 IP=$(hostname -I | awk '{print $1}')
 say "Listo. Interfaz web: http://$IP:7777  (usuario admin, contraseña inicial stella)"
+
+# Last step: move the USB network out of 192.168.100.0/24 (see the script).
+# Detached because it cuts SSH sessions that go through the USB cable.
+say "Red USB: se mueve a 192.168.200.2 (registro en /tmp/stella-usb-subnet.log)"
+setsid sh -c "sleep 2; sh '$REPO/deploy/usb-subnet.sh'" > /tmp/stella-usb-subnet.log 2>&1 < /dev/null &

@@ -35,7 +35,7 @@ def split_terse(line):
 
 
 class Nmcli:
-    def __init__(self, use_sudo=True, timeout=45):
+    def __init__(self, use_sudo=False, timeout=45):
         self.use_sudo = use_sudo
         self.timeout = timeout
 
@@ -68,12 +68,13 @@ class Network:
         self._hotspot_since = None
         self._last_web = 0.0
         self.last_error = None
+        self.last_status = {}
 
     # -- helpers ------------------------------------------------------------
     @property
     def nmcli(self):
         if self._runner is None:
-            self._runner = Nmcli(self.config.get("network.use_sudo", True))
+            self._runner = Nmcli(self.config.get("network.use_sudo", False))
         return self._runner
 
     def managed(self):
@@ -110,8 +111,28 @@ class Network:
             d["state"] == "connected" and d["type"] in ("wifi", "ethernet")
             and d["connection"] != HOTSPOT and not d["connection"].startswith("gadget")
             for d in devices)
-        return {"managed": True, "connected": connected, "hotspot_active": hotspot,
-                "devices": devices, "error": self.last_error}
+        self.last_status = {"managed": True, "connected": connected, "hotspot_active": hotspot,
+                            "devices": devices, "error": self.last_error}
+        return self.last_status
+
+    def client_wifi_connections(self):
+        """Every Wi-Fi client connection known to NetworkManager (Stella's or not)."""
+        return [c["name"] for c in self.connections()
+                if c["type"] in ("802-11-wireless", "wifi") and c["name"] != HOTSPOT]
+
+    def delete_all_wifi(self):
+        """Factory reset: remove every Wi-Fi connection (clients and hotspot).
+
+        USB gadget and Ethernet connections are never touched.
+        """
+        removed = []
+        for c in self.connections():
+            if c["type"] in ("802-11-wireless", "wifi"):
+                self.nmcli("connection", "delete", c["name"])
+                removed.append(c["name"])
+        self.storage.set(APPLIED_KEY, {})
+        log.warning("Factory reset: Wi-Fi connections removed: %s", ", ".join(removed) or "(none)")
+        return removed
 
     def scan(self):
         out = self.nmcli("-t", "-f", "SSID,SIGNAL,SECURITY", "device", "wifi", "list", "--rescan", "yes")
@@ -249,8 +270,8 @@ class Network:
             if self._hotspot_since is None:
                 self._hotspot_since = now
             quiet = now - self._last_web > WEB_QUIET
-            if (self.config.get("network.wifi") and quiet
-                    and now - self._hotspot_since >= hs["retry_interval"]):
+            if (quiet and now - self._hotspot_since >= hs["retry_interval"]
+                    and self.client_wifi_connections()):
                 self._leave_hotspot_and_retry()
             return
         if not hs["enabled"]:

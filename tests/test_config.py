@@ -63,3 +63,8 @@ def test_change_listener_called(cfg):
     cfg.on_change(seen.append)
     cfg.update_section("webhook", {"timeout": 3})
     assert seen == ["webhook"]
+
+
+def test_hotspot_password_is_not_masked(cfg):
+    red = redact(cfg.snapshot())
+    assert red["network"]["hotspot"]["password"] == cfg.get("network.hotspot.password")

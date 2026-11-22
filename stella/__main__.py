@@ -17,6 +17,8 @@ def parse_args(argv=None):
                         help="ruta del config.yaml (por defecto: %(default)s)")
     parser.add_argument("--headless", action="store_true",
                         help="solo procesar vídeo e imprimir los cruces (sin web ni integraciones)")
+    parser.add_argument("--factory-reset", action="store_true",
+                        help="borrar wifi, datos y configuración (detén antes el servicio stella)")
     parser.add_argument("--verbose", "-v", action="store_true")
     parser.add_argument("--version", action="version", version="Stella %s" % __version__)
     return parser.parse_args(argv)
@@ -37,6 +39,18 @@ def run_headless(config):
     pipeline.stop()
 
 
+def run_factory_reset(config):
+    import json
+
+    from .factory import factory_reset
+    from .net.wifi import Network
+    from .storage import Storage
+
+    storage = Storage(os.path.join(config.data_dir, "events.db"))
+    summary = factory_reset(config, Network(config, storage), release=storage.close)
+    print(json.dumps(summary, indent=2, ensure_ascii=False))
+
+
 def main(argv=None):
     args = parse_args(argv)
     logging.basicConfig(
@@ -47,6 +61,9 @@ def main(argv=None):
     logging.getLogger("stella").info("Stella %s, config %s", __version__, config.path)
 
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
+    if args.factory_reset:
+        run_factory_reset(config)
+        return 0
     if args.headless:
         run_headless(config)
         return 0

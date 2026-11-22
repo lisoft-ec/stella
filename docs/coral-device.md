@@ -51,6 +51,8 @@ Resoluciones de `/dev/video0` (todas YUYV):
 
 Rutas: `default via 192.168.100.1 dev wlan0` (metric 600). `192.168.100.0/24` está en `usb0` (metric 100) y en `wlan0` (metric 600).
 
+> **Conflicto de subred (2026-11-21).** La red local también es `192.168.100.0/24`. La ruta de `usb0` (métrica 100) gana a la de `wlan0`, así que sin el cable USB la placa no responde a la LAN. `deploy/usb-subnet.sh` (lo ejecuta `install.sh`) mueve `usb0` a `192.168.200.2/24` y `usb1` a `192.168.201.2/24`, junto con los rangos DHCP de `/etc/dnsmasq.d/02-usb-gadget` (se guarda una copia en `.orig`).
+
 Acceso medido desde la placa (`curl -sI`): `https://github.com` HTTP 200 · `https://raw.githubusercontent.com` HTTP 301 · `https://pypi.org/simple/pip/` HTTP 200.
 
 ## 4. Repositorios apt

@@ -48,7 +48,10 @@ class Leds:
         self._current = None
         self._stop = threading.Event()
         self._thread = None
+        self._preview = None
+        self._preview_until = 0.0
         self.pins = _NullPins()
+        self.driver = "none"
         self.reconfigure()
 
     def reconfigure(self):
@@ -56,9 +59,11 @@ class Leds:
         with self._lock:
             self.pins.close()
             self.pins = _NullPins()
+            self.driver = "none"
             if cfg["driver"] == "gpio":
                 try:
                     self.pins = _GpioPins(cfg["pins"], cfg["active_level"])
+                    self.driver = "gpio"
                 except Exception as exc:
                     log.warning("RGB LED unavailable (%s); continuing without it", exc)
             self._colors = {k: tuple(int(bool(v)) for v in rgb) for k, rgb in cfg["colors"].items()}
@@ -70,6 +75,22 @@ class Leds:
             self._flash = name
             self._flash_until = time.monotonic() + self._flash_seconds
 
+    def preview(self, rgb, seconds=3.0):
+        """Show an arbitrary colour (LED test from the web); wins over everything."""
+        with self._lock:
+            self._preview = tuple(int(bool(v)) for v in rgb)
+            self._preview_until = time.monotonic() + float(seconds)
+
+    def test_sequence(self, step=0.7):
+        """Red, green, blue, white, off — in the background."""
+        def run():
+            for rgb in ((1, 0, 0), (0, 1, 0), (0, 0, 1), (1, 1, 1)):
+                self.preview(rgb, step + 0.2)
+                time.sleep(step)
+            with self._lock:
+                self._preview_until = 0.0
+        threading.Thread(target=run, name="led-test", daemon=True).start()
+
     def set_condition(self, name, active):
         with self._lock:
             if active:
@@ -80,6 +101,8 @@ class Leds:
     def desired(self, now=None):
         now = time.monotonic() if now is None else now
         with self._lock:
+            if self._preview is not None and now < self._preview_until:
+                return self._preview
             if self._flash and now < self._flash_until:
                 return self._colors.get(self._flash, OFF)
             for name in PRIORITY:
