@@ -170,8 +170,10 @@ sudo systemctl stop stella
 ```
 
 ```bash
-/home/mendel/stella-venv/bin/python -m stella --config /home/mendel/stella-data/config.yaml --factory-reset
+cd /home/mendel/stella && /home/mendel/stella-venv/bin/python -m stella --config /home/mendel/stella-data/config.yaml --factory-reset
 ```
+
+Hay que lanzarlo **desde la carpeta del repo**: desde `/home/mendel`, Python toma la carpeta `stella/` del clon como paquete y falla.
 
 ```bash
 sudo systemctl start stella
