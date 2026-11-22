@@ -1,26 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Sistema{% endblock %}
 {% block content %}
-<div class="page-head" x-data="{ about: false }">
-  <h2>Sistema</h2>
-  <button class="outline secondary small" @click="about = true">Acerca de</button>
-  <dialog :open="about" @keydown.escape.window="about = false" @click.self="about = false">
-    <article>
-      <header>
-        <button aria-label="Cerrar" rel="prev" @click="about = false"></button>
-        <strong>Stella {{ version }}</strong>
-      </header>
-      <p>Contador de personas con visión artificial sobre Google Coral.</p>
-      <ul class="about">
-        <li><strong>Idea original:</strong> Silttec · <a href="https://www.silttec.com" target="_blank" rel="noopener">www.silttec.com</a></li>
-        <li><strong>Versión 2:</strong> Lisoft · <a href="https://www.lisoft.net" target="_blank" rel="noopener">www.lisoft.net</a></li>
-        <li><strong>Comercialización:</strong> AV Electronics · <a href="https://www.avelectronics.cc" target="_blank" rel="noopener">www.avelectronics.cc</a></li>
-      </ul>
-      <p class="small muted">Silttec | Lisoft ® 2026</p>
-      <footer><button @click="about = false">Cerrar</button></footer>
-    </article>
-  </dialog>
-</div>
+<h2>Sistema</h2>
 <div class="panels">
   <article x-data="deviceForm()">
     <header><strong>Dispositivo</strong></header>
@@ -144,6 +125,25 @@
       <div class="toolbar">
         <button class="outline" @click="restart()">Reiniciar Stella</button>
         <button class="outline contrast" @click="reboot()">Reiniciar el equipo</button>
+        <span x-data="{ about: false }">
+          <button class="outline secondary" @click="about = true">Acerca de</button>
+          <dialog :open="about" @keydown.escape.window="about = false" @click.self="about = false">
+            <article>
+              <header>
+                <button aria-label="Cerrar" rel="prev" @click="about = false"></button>
+                <strong>Stella {{ version }}</strong>
+              </header>
+              <p>Contador de personas con visión artificial sobre Google Coral.</p>
+              <ul class="about">
+                <li><strong>Idea original:</strong> Silttec · <a href="https://www.silttec.com" target="_blank" rel="noopener">www.silttec.com</a></li>
+                <li><strong>Versión 2:</strong> Lisoft · <a href="https://www.lisoft.net" target="_blank" rel="noopener">www.lisoft.net</a></li>
+                <li><strong>Comercialización:</strong> AV Electronics · <a href="https://www.avelectronics.cc" target="_blank" rel="noopener">www.avelectronics.cc</a></li>
+              </ul>
+              <p class="small muted">Silttec | Lisoft ® 2026</p>
+              <footer><button @click="about = false">Cerrar</button></footer>
+            </article>
+          </dialog>
+        </span>
       </div>
       <hr>
       <p class="small"><strong>Restaurar configuración de fábrica</strong>: borra todas las redes wifi guardadas,

@@ -92,9 +92,6 @@ body.resetting main { opacity: .5; pointer-events: none; }
 .inline-check { display: flex; align-items: center; gap: .3rem; white-space: nowrap; margin-bottom: .5rem; font-size: .85rem; }
 .inline-check input { margin: 0; }
 
-.page-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; flex-wrap: wrap; }
-.page-head h2 { margin-bottom: 0; }
-.page-head > button { width: auto; margin: 0; }
 ul.about li { list-style: none; margin-bottom: .4rem; }
 ul.about { padding-left: 0; }
 .table-scroll { overflow-x: auto; max-width: 100%; }
