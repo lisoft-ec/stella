@@ -106,7 +106,7 @@ class Clock:
 
 def network(config, storage, nm=None, clock=None):
     config.update_section("network", {"managed": True}, notify=False)
-    return Network(config, storage, runner=nm or FakeNmcli(), clock=clock or Clock(), sleep=lambda s: None)
+    return Network(config, storage, runner=nm or FakeNmcli(), clock=clock or Clock())
 
 
 def test_apply_creates_only_changed_connections(config, storage):
@@ -136,18 +136,14 @@ def test_apply_creates_only_changed_connections(config, storage):
     assert sorted(nm.names("delete")) == ["stella-wifi-Abierta", "stella-wifi-Casa"]
 
 
-def test_status_and_scan(config, storage):
+def test_status_reports_ips_and_hostname(config, storage):
     nm = FakeNmcli()
     net = network(config, storage, nm)
     st = net.status()
     assert st["connected"] is False  # the USB gadget does not count
+    assert st["hostname"]
     nm.active["wlan0"] = "stella-wifi-Casa"
     assert net.status()["connected"] is True
-    result = net.scan()
-    assert result["cached"] is False
-    assert result["networks"] == [{"ssid": "Casa", "signal": 70, "security": "WPA2"},
-                                  {"ssid": "Vecino", "signal": 55, "security": ""}]
-
 
 def test_unmanaged_network_does_nothing(config, storage):
     nm = FakeNmcli()
@@ -261,40 +257,6 @@ def test_nmcli_runs_without_sudo_by_default(config, storage):
     assert net.nmcli.use_sudo is False
 
 
-def test_scan_waits_for_rescan_and_hides_own_hotspot(config, storage):
-    nm = FakeNmcli()
-    slept = []
-    config.update_section("network", {"managed": True}, notify=False)
-    net = Network(config, storage, runner=nm, sleep=slept.append)
-    original = nm.__call__
-
-    def nmcli(*args):
-        if args[:3] == ("-t", "-f", "SSID,SIGNAL,SECURITY"):
-            assert args[-2:] == ("--rescan", "no")
-            return "StellaWIFI:0:WPA2\n:45:WPA2\nWIFI-IOT:79:WPA2\n"
-        return original(*args)
-    net._runner = nmcli
-    assert net.scan()["networks"] == [{"ssid": "WIFI-IOT", "signal": 79, "security": "WPA2"}]
-    assert slept == [4.0]
-    assert ("device", "wifi", "rescan") in nm.calls
-
-
-def test_scan_uses_last_results_when_rescan_is_refused(config, storage):
-    nm = FakeNmcli()
-    slept = []
-    net = network(config, storage, nm)
-    net._sleep = slept.append
-    original = nm.__call__
-
-    def nmcli(*args):
-        if args == ("device", "wifi", "rescan"):
-            raise NmcliError("Scanning not allowed immediately following previous scan.")
-        return original(*args)
-    net._runner = nmcli
-    assert [n["ssid"] for n in net.scan()["networks"]] == ["Casa", "Vecino"]
-    assert slept == []
-
-
 def test_hidden_network_is_configured_as_hidden(config, storage):
     nm = FakeNmcli()
     net = network(config, storage, nm)
@@ -306,37 +268,3 @@ def test_hidden_network_is_configured_as_hidden(config, storage):
     assert oculta[oculta.index("802-11-wireless.hidden") + 1] == "yes"
     assert "802-11-wireless.hidden" not in adds["stella-wifi-Visible"]
     assert config.get("network.wifi")[1]["hidden"] is False
-
-
-def test_scan_with_hotspot_returns_list_saved_before_it(config, storage):
-    nm, clock = FakeNmcli(), Clock()
-    net = network(config, storage, nm, clock)
-    config.update_section("network", {"hotspot": {"timeout": 30}}, notify=False)
-    net.check()
-    clock.t += 31
-    net.check()                       # saves the list, then starts the hotspot
-    assert nm.active["wlan0"] == HOTSPOT
-    nm.calls.clear()
-    result = net.scan()
-    assert result["cached"] is True
-    assert [n["ssid"] for n in result["networks"]] == ["Casa", "Vecino"]
-    assert result["time"]
-    # No scan is attempted in AP mode (NetworkManager would refuse it).
-    assert ("device", "wifi", "rescan") not in nm.calls
-
-
-def test_rescan_through_hotspot_brings_it_back(config, storage):
-    import time as _time
-    nm = FakeNmcli()
-    net = network(config, storage, nm)
-    nm.active["wlan0"] = HOTSPOT
-    net.rescan_through_hotspot()
-    for _ in range(50):
-        if any(c == ("connection", "up", HOTSPOT) for c in nm.calls):
-            break
-        _time.sleep(0.02)
-    downs = [i for i, c in enumerate(nm.calls) if c == ("connection", "down", HOTSPOT)]
-    ups = [i for i, c in enumerate(nm.calls) if c == ("connection", "up", HOTSPOT)]
-    scans = [i for i, c in enumerate(nm.calls) if c == ("device", "wifi", "rescan")]
-    assert downs and scans and ups and downs[0] < scans[0] < ups[0]
-    assert storage.get("wifi_scan_cache")["networks"]

@@ -253,28 +253,6 @@ def network_status():
         abort(503, "NetworkManager: %s" % exc)
 
 
-@api.route("/network/scan")
-def network_scan():
-    from ..net.wifi import NmcliError
-
-    if not g.ctx.network.managed():
-        abort(400, "La gestión de red está desactivada")
-    try:
-        return jsonify(g.ctx.network.scan())
-    except NmcliError as exc:
-        abort(503, "NetworkManager: %s" % exc)
-
-
-@api.route("/network/rescan", methods=["POST"])
-def network_rescan():
-    """With the hotspot up: drop it ~20 s to scan for real (the client must reconnect)."""
-    if not g.ctx.network.managed():
-        abort(400, "La gestión de red está desactivada")
-    g.ctx.network.rescan_through_hotspot()
-    return jsonify(ok=True, message="La red %s se cortará unos 20 segundos para buscar redes. "
-                                    "Vuelve a conectarte y pulsa «Buscar»." % g.ctx.config.get("network.hotspot.ssid"))
-
-
 @api.route("/ota")
 def ota_state():
     return jsonify(g.ctx.ota.state())

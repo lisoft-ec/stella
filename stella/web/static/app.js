@@ -333,42 +333,33 @@ document.addEventListener('alpine:init', () => {
 
   /* ---------- network ---------- */
   Alpine.data('networkForm', sectionForm('network', {
-    status: null, statusError: '', networks: [], scanning: false, scanCached: false, scanTime: '',
+    status: null, statusError: '', showPassword: false,
+    form: { ssid: '', password: '', hidden: false },
     async loaded() { if (!this.status) this.loadStatus(); },
     async loadStatus() {
       try { this.status = await api('GET', '/api/v1/network/status'); this.statusError = ''; }
       catch (e) { this.statusError = e.message; }
     },
-    async scan() {
-      this.scanning = true;
-      try {
-        const r = await api('GET', '/api/v1/network/scan');
-        this.networks = r.networks;
-        this.scanCached = r.cached;
-        this.scanTime = (r.time || '').slice(11, 16);
-      } catch (e) { toast(e.message, 'error'); }
-      this.scanning = false;
-    },
-    async rescanThroughHotspot() {
-      if (!confirm('El hotspot se apagará unos 20 segundos y tendrás que volver a conectarte. ¿Continuar?')) return;
-      try { const r = await api('POST', '/api/v1/network/rescan'); toast(r.message); }
-      catch (e) { toast(e.message, 'error'); }
-    },
-    hidden: { ssid: '', password: '', priority: 0 },
-    addWifi(ssid) {
-      if (ssid && this.data.wifi.some((w) => w.ssid === ssid)) { toast('Esa red ya está en la lista', 'error'); return; }
-      this.data.wifi.push({ ssid, password: '', priority: 0, hidden: false });
-      if (ssid) toast('Escribe la clave de ' + ssid + ' y pulsa «Guardar y aplicar»');
-    },
-    async addHidden() {
-      const ssid = this.hidden.ssid.trim();
+    webUrl() { return this.status && this.status.hostname ? 'http://' + this.status.hostname + '.local:7777' : ''; },
+    async connect() {
+      const ssid = this.form.ssid.trim();
       if (!ssid) { toast('Escribe el nombre de la red', 'error'); return; }
-      if (this.hidden.password && this.hidden.password.length < 8) { toast('La clave debe tener al menos 8 caracteres', 'error'); return; }
-      const wifi = this.data.wifi.filter((w) => w.ssid !== ssid);
-      wifi.push({ ssid, password: this.hidden.password, priority: this.hidden.priority || 0, hidden: true });
-      this.data.wifi = wifi;
+      if (this.form.password && this.form.password.length < 8) { toast('La clave debe tener al menos 8 caracteres', 'error'); return; }
+      const others = this.data.wifi.filter((w) => w.ssid !== ssid);
+      // The newest network gets the highest priority.
+      const top = others.reduce((m, w) => Math.max(m, w.priority || 0), 0);
+      const msg = 'La placa se conectará a «' + ssid + '». Si estás conectado a ' + this.data.hotspot.ssid +
+                  ', perderás la conexión: después entra en ' + (this.webUrl() || 'la IP que le dé tu router') +
+                  '. Si no logra conectarse, en un minuto vuelve a crear ' + this.data.hotspot.ssid + '. ¿Continuar?';
+      if (!confirm(msg)) return;
+      this.data.wifi = others.concat([{ ssid, password: this.form.password, priority: top + 1, hidden: this.form.hidden }]);
       await this.save();
-      this.hidden = { ssid: '', password: '', priority: 0 };
+      this.form = { ssid: '', password: '', hidden: false };
+    },
+    async forget(i) {
+      if (!confirm('¿Olvidar la red «' + this.data.wifi[i].ssid + '»?')) return;
+      this.data.wifi.splice(i, 1);
+      await this.save();
     },
   }));
 

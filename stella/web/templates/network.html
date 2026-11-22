@@ -5,10 +5,30 @@
 <div x-data="networkForm()">
   <article class="banner info" x-show="data && !data.managed">
     La gestión de red está desactivada: Stella no modifica NetworkManager (modo PC/desarrollo).
-    <label><input type="checkbox" role="switch" :checked="data && data.managed" @change="data.managed = $event.target.checked"> Activar gestión de red</label>
+    <label><input type="checkbox" role="switch" :checked="data && data.managed" @change="data.managed = $event.target.checked; save()"> Activar gestión de red</label>
   </article>
 
   <div class="grid-2">
+    <article>
+      <header><strong>Conectar a una red wifi</strong></header>
+      <template x-if="data">
+        <div>
+          <label>Nombre de la red (SSID)
+            <input x-model="form.ssid" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Exactamente como se llama la red">
+          </label>
+          <label>Clave
+            <div class="row">
+              <input :type="showPassword ? 'text' : 'password'" x-model="form.password" autocomplete="new-password" placeholder="Vacía si la red es abierta">
+              <button type="button" class="outline secondary small" @click="showPassword = !showPassword" x-text="showPassword ? 'Ocultar' : 'Ver'"></button>
+            </div>
+          </label>
+          <label><input type="checkbox" x-model="form.hidden"> Red oculta (no aparece en la lista de redes)</label>
+          <button @click="connect()" :aria-busy="saving">Guardar y conectar</button>
+          <p class="small muted">Si la placa está en el hotspot, se desconectará de él para unirse a esta red.</p>
+        </div>
+      </template>
+    </article>
+
     <article>
       <header><strong>Estado</strong> <button class="outline secondary small right" @click="loadStatus()">Actualizar</button></header>
       <template x-if="status">
@@ -20,66 +40,38 @@
             <span class="badge" x-show="status.hotspot_active">Hotspot activo</span>
           </p>
           <table class="small">
-            <thead><tr><th>Interfaz</th><th>Tipo</th><th>Estado</th><th>Conexión</th></tr></thead>
+            <thead><tr><th>Interfaz</th><th>Conexión</th><th>IP</th></tr></thead>
             <tbody>
               <template x-for="d in status.devices">
-                <tr><td x-text="d.device"></td><td x-text="d.type"></td><td x-text="d.state"></td><td x-text="d.connection"></td></tr>
+                <tr><td x-text="d.device"></td><td x-text="d.connection || d.state"></td><td class="mono" x-text="d.ip || '–'"></td></tr>
               </template>
             </tbody>
           </table>
+          <p class="small">Desde otro equipo de la misma red: <a :href="webUrl()" class="mono" x-text="webUrl()"></a></p>
         </div>
       </template>
       <p class="muted small" x-show="!status" x-text="statusError || 'Cargando…'"></p>
-    </article>
-
-    <article>
-      <header><strong>Redes visibles</strong> <button class="outline secondary small right" @click="scan()" :aria-busy="scanning">Buscar</button></header>
-      <ul class="scan">
-        <template x-for="n in networks" :key="n.ssid">
-          <li>
-            <span x-text="n.ssid"></span>
-            <small class="muted" x-text="n.signal + '% · ' + (n.security || 'abierta')"></small>
-            <button class="outline small" @click="addWifi(n.ssid)">Añadir</button>
-          </li>
-        </template>
-        <li class="muted small" x-show="!networks.length" x-text="scanning ? 'Buscando redes (unos segundos)…' : (scanCached ? 'No hay ninguna lista guardada todavía.' : 'Pulsa «Buscar» para ver las redes wifi cercanas.')"></li>
-      </ul>
-      <template x-if="scanCached">
-        <div>
-          <p class="small muted">Con el hotspot activo la placa no puede buscar redes: esta es la lista guardada<span x-show="scanTime" x-text="' a las ' + scanTime"></span>.</p>
-          <button class="outline secondary small" @click="rescanThroughHotspot()">Buscar de nuevo (corta el hotspot ~20 s)</button>
-        </div>
-      </template>
     </article>
   </div>
 
   <template x-if="data">
     <div>
       <article>
-        <header><strong>Redes wifi conocidas</strong></header>
-        <p class="small muted">Stella se conecta a la red disponible con mayor prioridad.</p>
-        <template x-for="(w, i) in data.wifi" :key="i">
-          <div class="row">
-            <input x-model="w.ssid" placeholder="Nombre de la red (SSID)">
-            <input type="password" x-model="w.password" placeholder="Clave (vacía si es abierta)" autocomplete="new-password">
-            <input type="number" x-model.number="w.priority" title="Prioridad" class="narrow">
-            <label class="inline-check" title="Red oculta (no anuncia su nombre)"><input type="checkbox" x-model="w.hidden"> oculta</label>
-            <button class="outline secondary small" @click="data.wifi.splice(i, 1)">✕</button>
-          </div>
-        </template>
-        <p class="small muted" x-show="!data.wifi.length">Sin redes guardadas: añade una desde «Redes visibles» o como red oculta.</p>
-        <button class="outline secondary small" @click="addWifi('')">Añadir red</button>
-      </article>
-
-      <article>
-        <header><strong>Red oculta</strong></header>
-        <p class="small muted">Para redes que no anuncian su nombre y por eso no aparecen al buscar. Escribe el nombre exacto (distingue mayúsculas).</p>
-        <div class="grid">
-          <label>Nombre de la red (SSID) <input x-model="hidden.ssid" autocomplete="off"></label>
-          <label>Clave <input type="password" x-model="hidden.password" autocomplete="new-password" placeholder="vacía si es abierta"></label>
-          <label>Prioridad <input type="number" x-model.number="hidden.priority"></label>
-        </div>
-        <button @click="addHidden()" :aria-busy="saving">Añadir y aplicar</button>
+        <header><strong>Redes guardadas</strong></header>
+        <p class="small muted" x-show="!data.wifi.length">Ninguna todavía. Sin red conocida, la placa crea el hotspot <code x-text="data.hotspot.ssid"></code>.</p>
+        <table class="small" x-show="data.wifi.length">
+          <thead><tr><th>Red</th><th>Prioridad</th><th></th></tr></thead>
+          <tbody>
+            <template x-for="(w, i) in data.wifi" :key="w.ssid">
+              <tr>
+                <td><span x-text="w.ssid"></span> <span class="badge" x-show="w.hidden">oculta</span> <span class="badge" x-show="!w.password">abierta</span></td>
+                <td x-text="w.priority"></td>
+                <td><button class="outline secondary small" @click="forget(i)">Olvidar</button></td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+        <p class="small muted" x-show="data.wifi.length > 1">Si hay varias disponibles, la placa elige la de mayor prioridad (la última añadida).</p>
       </article>
 
       <div class="grid-2">
@@ -92,12 +84,15 @@
           </div>
           <div class="grid">
             <label>Esperar antes de activarlo (s) <input type="number" min="15" x-model.number="data.hotspot.timeout"></label>
-            <label>Reintentar redes conocidas cada (s) <input type="number" min="30" x-model.number="data.hotspot.retry_interval"></label>
+            <label>Reintentar redes guardadas cada (s) <input type="number" min="30" x-model.number="data.hotspot.retry_interval"></label>
           </div>
+          <p class="small muted">Conectado al hotspot, la placa está en <code>http://10.42.0.1:7777</code>.</p>
+          <button @click="save()" :aria-busy="saving">Guardar</button>
         </article>
 
         <article>
           <header><strong>Ethernet</strong></header>
+          <p class="small muted">Con cable, la placa pide IP al router (DHCP) y deja el hotspot en unos segundos.</p>
           <label>Modo
             <select x-model="data.ethernet.method">
               <option value="auto">Automático (DHCP)</option>
@@ -111,11 +106,8 @@
               <label>DNS <input x-model="data.ethernet.dns" placeholder="8.8.8.8 1.1.1.1"></label>
             </div>
           </template>
+          <button @click="save()" :aria-busy="saving">Guardar</button>
         </article>
-      </div>
-
-      <div class="toolbar">
-        <button @click="save()" :aria-busy="saving">Guardar y aplicar</button>
       </div>
     </div>
   </template>

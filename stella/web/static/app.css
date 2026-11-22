@@ -65,9 +65,8 @@ dl.kv dd { margin: 0; text-align: right; font-size: .9rem; }
 .dot.off { background: #888; }
 
 .badge { display: inline-block; padding: .05rem .5rem; border-radius: 1rem; font-size: .75rem; background: var(--pico-secondary-background); color: var(--pico-secondary-inverse); margin-right: .4rem; }
-ul.events, ul.scan { list-style: none; padding: 0; margin: 0; }
-ul.events li, ul.scan li { list-style: none; display: flex; align-items: center; gap: .5rem; padding: .3rem 0; border-bottom: 1px solid var(--pico-muted-border-color); }
-ul.scan li span { flex: 1; }
+ul.events { list-style: none; padding: 0; margin: 0; }
+ul.events li { list-style: none; display: flex; align-items: center; gap: .5rem; padding: .3rem 0; border-bottom: 1px solid var(--pico-muted-border-color); }
 ul.events li.in .badge { background: var(--stella-in); color: #000; }
 ul.events li.out .badge { background: var(--stella-out); color: #000; }
 

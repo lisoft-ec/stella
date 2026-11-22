@@ -8,11 +8,11 @@ A monitor thread starts the hotspot when there is no connection for
 ``hotspot.timeout`` seconds and periodically leaves it to retry the known
 networks (unless someone used the web interface recently).
 """
-import datetime
 import hashlib
 import json
 import logging
 import re
+import socket
 import subprocess
 import threading
 import time
@@ -23,9 +23,6 @@ WIFI_PREFIX = "stella-wifi-"
 HOTSPOT = "stella-hotspot"
 APPLIED_KEY = "network_applied"
 WEB_QUIET = 120  # seconds of web inactivity before leaving the hotspot to retry
-SCAN_KEY = "wifi_scan_cache"
-SCAN_WAIT = 4.0  # seconds between "wifi rescan" and reading the results
-CACHE_EVERY = 60  # seconds between passive refreshes of the cached list
 
 
 class NmcliError(RuntimeError):
@@ -60,9 +57,8 @@ def _hash(value):
 
 
 class Network:
-    def __init__(self, config, storage, runner=None, clock=time.monotonic, sleep=time.sleep):
+    def __init__(self, config, storage, runner=None, clock=time.monotonic):
         self.config = config
-        self._sleep = sleep
         self.storage = storage
         self._runner = runner
         self._clock = clock
@@ -74,7 +70,6 @@ class Network:
         self._last_web = 0.0
         self.last_error = None
         self.last_status = {}
-        self._cache_t = None
 
     # -- helpers ------------------------------------------------------------
     @property
@@ -109,16 +104,23 @@ class Network:
         return [dict(zip(("name", "type", "device"), split_terse(l))) for l in out.splitlines() if l]
 
     def status(self):
+        from ..hw import system
+
         if not self.managed():
-            return {"managed": False, "connected": None, "hotspot_active": False, "devices": []}
+            return {"managed": False, "connected": None, "hotspot_active": False, "devices": [],
+                    "hostname": socket.gethostname(), "ips": system.ip_addresses()}
         devices = self.devices()
+        ips = system.ip_addresses()
+        for d in devices:
+            d["ip"] = ips.get(d["device"], "")
         hotspot = any(d["connection"] == HOTSPOT for d in devices)
         connected = any(
             d["state"] == "connected" and d["type"] in ("wifi", "ethernet")
             and d["connection"] != HOTSPOT and not d["connection"].startswith("gadget")
             for d in devices)
         self.last_status = {"managed": True, "connected": connected, "hotspot_active": hotspot,
-                            "devices": devices, "error": self.last_error}
+                            "devices": devices, "error": self.last_error,
+                            "hostname": socket.gethostname(), "ips": ips}
         return self.last_status
 
     def client_wifi_connections(self):
@@ -139,79 +141,6 @@ class Network:
         self.storage.set(APPLIED_KEY, {})
         log.warning("Factory reset: Wi-Fi connections removed: %s", ", ".join(removed) or "(none)")
         return removed
-
-    def _read_list(self):
-        """NetworkManager's current list (no new scan): our hotspot and hidden SSIDs left out."""
-        out = self.nmcli("-t", "-f", "SSID,SIGNAL,SECURITY", "device", "wifi", "list", "--rescan", "no")
-        own = self.config.get("network.hotspot.ssid")
-        best = {}
-        for line in out.splitlines():
-            parts = split_terse(line)
-            if len(parts) < 3 or not parts[0] or parts[0] == own:
-                continue
-            signal = int(parts[1]) if parts[1].isdigit() else 0
-            if parts[0] not in best or signal > best[parts[0]]["signal"]:
-                best[parts[0]] = {"ssid": parts[0], "signal": signal, "security": parts[2]}
-        return sorted(best.values(), key=lambda n: -n["signal"])
-
-    def _live_scan(self, wait=SCAN_WAIT):
-        """Request a scan, wait for it and read the list (wlan0 must not be in AP mode)."""
-        try:
-            self.nmcli("device", "wifi", "rescan")
-        except NmcliError as exc:
-            # "not allowed immediately following previous scan": the list is recent anyway.
-            log.debug("Wi-Fi rescan not started: %s", exc)
-        else:
-            self._sleep(wait)
-        return self._read_list()
-
-    def _remember(self, networks):
-        cache = {"time": datetime.datetime.now().astimezone().isoformat(timespec="seconds"),
-                 "networks": networks}
-        self.storage.set(SCAN_KEY, cache)
-        self._cache_t = self._clock()
-        return cache
-
-    def refresh_scan_cache(self, live=True):
-        """Store the visible networks while wlan0 can still scan (not in AP mode)."""
-        try:
-            networks = self._live_scan() if live else self._read_list()
-        except NmcliError as exc:
-            log.debug("Wi-Fi list not cached: %s", exc)
-            return None
-        if networks:
-            return self._remember(networks)
-        return None
-
-    def scan(self):
-        """Visible networks, strongest first: ``{networks, cached, time}``.
-
-        With the hotspot up, NetworkManager refuses to scan ("Scanning not
-        allowed at this time"), so the list saved before the hotspot started
-        (or during the last retry) is returned with ``cached: True``.
-        """
-        if self.status().get("hotspot_active"):
-            cache = self.storage.get(SCAN_KEY) or {}
-            return {"networks": cache.get("networks", []), "cached": True, "time": cache.get("time")}
-        cache = self._remember(self._live_scan())
-        return dict(cache, cached=False)
-
-    def rescan_through_hotspot(self):
-        """Drop the hotspot ~20 s to scan for real, then bring it back (in a thread)."""
-        def run():
-            with self._lock:
-                log.info("Leaving the hotspot briefly to scan Wi-Fi networks")
-                try:
-                    self.nmcli("connection", "down", HOTSPOT)
-                except NmcliError:
-                    pass
-                self._sleep(3)
-                self.refresh_scan_cache(live=True)
-                try:
-                    self._hotspot_up()
-                except NmcliError as exc:
-                    log.error("Could not bring the hotspot back: %s", exc)
-        threading.Thread(target=run, name="wifi-rescan", daemon=True).start()
 
     # -- applying the configuration -----------------------------------------------
     def apply(self):
@@ -305,13 +234,12 @@ class Network:
         self.nmcli("connection", "up", HOTSPOT)
         self._hotspot_since = self._clock()
 
-    def _leave_hotspot_and_retry(self, wait=30):
+    def _leave_hotspot_and_retry(self, wait=45):
         log.info("Leaving hotspot to retry the known Wi-Fi networks")
         try:
             self.nmcli("connection", "down", HOTSPOT)
         except NmcliError:
             pass
-        self.refresh_scan_cache(live=True)
         end = self._clock() + wait
         while self._clock() < end and not self._stop.is_set():
             if self.status()["connected"]:
@@ -330,9 +258,6 @@ class Network:
         st = self.status()
         hs = self.config.section("network")["hotspot"]
         now = self._clock()
-        if not st["hotspot_active"] and (self._cache_t is None or now - self._cache_t >= CACHE_EVERY):
-            self.refresh_scan_cache(live=False)
-            self._cache_t = now
         if st["connected"]:
             self._no_conn_since = None
             if st["hotspot_active"]:
@@ -353,8 +278,6 @@ class Network:
         if self._no_conn_since is None:
             self._no_conn_since = now
         elif now - self._no_conn_since >= hs["timeout"]:
-            # Last chance to see the nearby networks: scanning is refused in AP mode.
-            self.refresh_scan_cache(live=True)
             self._hotspot_up()
             self._no_conn_since = None
 
