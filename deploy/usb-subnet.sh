@@ -42,6 +42,16 @@ if [ -f "$DNSMASQ" ] && grep -q "192\.168\.10[01]\." "$DNSMASQ"; then
     echo "DHCP USB actualizado en $DNSMASQ (copia en $BACKUP)"
 fi
 
+# Without this, the USB dnsmasq listens on 0.0.0.0:67 and the dnsmasq that
+# NetworkManager starts for the StellaWIFI hotspot cannot bind ("Address already
+# in use"): phones join the hotspot but never get an IP. bind-dynamic limits it
+# to usb0/usb1 and copes with them appearing later.
+if [ -f "$DNSMASQ" ] && ! grep -q "^bind-dynamic" "$DNSMASQ"; then
+    [ -f "$BACKUP" ] || sudo -n cp "$DNSMASQ" "$BACKUP"
+    echo "bind-dynamic" | sudo -n tee -a "$DNSMASQ" >/dev/null
+    echo "DHCP USB limitado a usb0/usb1 (bind-dynamic)"
+fi
+
 # Apply: interfaces whose live address does not match get their connection re-activated.
 for pair in "usb0 gadget0 $USB0_NEW" "usb1 gadget1 $USB1_NEW"; do
     set -- $pair
@@ -53,4 +63,10 @@ done
 
 sudo -n systemctl restart dnsmasq
 systemctl is-active dnsmasq
+
+# If the hotspot is up, re-activate it so NetworkManager starts its own DHCP.
+if nmcli -t -f DEVICE,CONNECTION device | grep -q "^wlan0:stella-hotspot$"; then
+    echo "Reactivando el hotspot para arrancar su DHCP"
+    sudo -n nmcli connection up stella-hotspot >/dev/null 2>&1 || true
+fi
 echo "Red USB lista: la placa está en $USB0_NEW.2 por USB."

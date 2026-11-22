@@ -51,7 +51,9 @@ Resoluciones de `/dev/video0` (todas YUYV):
 
 Rutas: `default via 192.168.100.1 dev wlan0` (metric 600). `192.168.100.0/24` está en `usb0` (metric 100) y en `wlan0` (metric 600).
 
-> **Conflicto de subred (2026-11-21).** La red local también es `192.168.100.0/24`. La ruta de `usb0` (métrica 100) gana a la de `wlan0`, así que sin el cable USB la placa no responde a la LAN. `deploy/usb-subnet.sh` (lo ejecuta `install.sh`) mueve `usb0` a `192.168.200.2/24` y `usb1` a `192.168.201.2/24`, junto con los rangos DHCP de `/etc/dnsmasq.d/02-usb-gadget` (se guarda una copia en `.orig`).
+> **Conflicto de subred (2026-11-21).** La red local también es `192.168.100.0/24`. La ruta de `usb0` (métrica 100) gana a la de `wlan0`, así que sin el cable USB la placa no responde a la LAN. `deploy/usb-subnet.sh` (lo ejecuta `install.sh`) mueve `usb0` a `192.168.200.2/24` y `usb1` a `192.168.201.2/24`, junto con los rangos DHCP de `/etc/dnsmasq.d/02-usb-gadget` (copia original en `/var/backups/dnsmasq-02-usb-gadget.orig`).
+>
+> **DHCP del hotspot.** El dnsmasq de la red USB escuchaba en `0.0.0.0:67`, así que el dnsmasq que NetworkManager lanza para el hotspot fallaba con `failed to bind DHCP server socket: Address already in use`: los móviles se asociaban a StellaWIFI pero nunca recibían IP. El mismo script añade `bind-dynamic` a `02-usb-gadget` para limitarlo a `usb0`/`usb1`.
 
 Acceso medido desde la placa (`curl -sI`): `https://github.com` HTTP 200 · `https://raw.githubusercontent.com` HTTP 301 · `https://pypi.org/simple/pip/` HTTP 200.
 
