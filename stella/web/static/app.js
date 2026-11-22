@@ -420,12 +420,12 @@ document.addEventListener('alpine:init', () => {
   }));
 
   Alpine.data('passwordForm', () => ({
-    username: '', current: '', next: '', repeat: '', saving: false,
+    current: '', next: '', repeat: '', saving: false,
     async save() {
       if (this.next !== this.repeat) { toast('Las contraseñas nuevas no coinciden', 'error'); return; }
       this.saving = true;
       try {
-        await api('POST', '/api/v1/auth/password', { username: this.username, current: this.current, new: this.next });
+        await api('POST', '/api/v1/auth/password', { current: this.current, new: this.next });
         toast('Contraseña cambiada');
         this.current = this.next = this.repeat = '';
         setTimeout(() => location.reload(), 800);

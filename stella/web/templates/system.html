@@ -1,7 +1,26 @@
 {% extends "base.html" %}
 {% block title %}Sistema{% endblock %}
 {% block content %}
-<h2>Sistema</h2>
+<div class="page-head" x-data="{ about: false }">
+  <h2>Sistema</h2>
+  <button class="outline secondary small" @click="about = true">Acerca de</button>
+  <dialog :open="about" @keydown.escape.window="about = false" @click.self="about = false">
+    <article>
+      <header>
+        <button aria-label="Cerrar" rel="prev" @click="about = false"></button>
+        <strong>Stella {{ version }}</strong>
+      </header>
+      <p>Contador de personas con visión artificial sobre Google Coral.</p>
+      <ul class="about">
+        <li><strong>Idea original:</strong> Silttec · <a href="https://www.silttec.com" target="_blank" rel="noopener">www.silttec.com</a></li>
+        <li><strong>Versión 2:</strong> Lisoft · <a href="https://www.lisoft.net" target="_blank" rel="noopener">www.lisoft.net</a></li>
+        <li><strong>Comercialización:</strong> AV Electronics · <a href="https://www.avelectronics.cc" target="_blank" rel="noopener">www.avelectronics.cc</a></li>
+      </ul>
+      <p class="small muted">Silttec | Lisoft ® 2026</p>
+      <footer><button @click="about = false">Cerrar</button></footer>
+    </article>
+  </dialog>
+</div>
 <div class="panels">
   <article x-data="deviceForm()">
     <header><strong>Dispositivo</strong></header>
@@ -48,8 +67,16 @@
           <label>Controlador
             <select x-model="data.driver"><option value="gpio">GPIO (placa)</option><option value="none">Ninguno</option></select>
           </label>
-          <label>Destello (s) <input type="number" step="0.1" min="0.1" x-model.number="data.flash_seconds"></label>
+          <label>Tipo de LED
+            <select x-model.number="data.active_level">
+              <option value="0">Ánodo común</option>
+              <option value="1">Cátodo común</option>
+            </select>
+          </label>
         </div>
+        <label>Destello (s) <input type="number" step="0.1" min="0.1" x-model.number="data.flash_seconds"></label>
+        <p class="small muted">Pines: rojo GPIO_P18, verde GPIO_P13, azul GPIO_P16. Si en reposo el LED queda blanco, cambia el tipo de LED.</p>
+        <div class="table-scroll">
         <table class="small leds">
           <thead><tr><th>Estado</th><th>R</th><th>G</th><th>B</th><th></th><th></th></tr></thead>
           <tbody>
@@ -63,6 +90,7 @@
             </template>
           </tbody>
         </table>
+        </div>
         <div class="panel-actions">
           <button @click="save()" :aria-busy="saving">Guardar</button>
           <button class="outline" @click="sequence()">Prueba de lámparas</button>
@@ -74,7 +102,8 @@
   <article x-data="passwordForm()" id="seguridad">
     <header><strong>Seguridad</strong></header>
     <div class="panel-body">
-      <label>Usuario <input x-model="username" autocomplete="username"></label>
+      <p class="small muted">Usuario: <code>admin</code></p>
+      <input type="text" value="admin" autocomplete="username" hidden>
       <label>Contraseña actual <input type="password" x-model="current" autocomplete="current-password"></label>
       <label>Contraseña nueva (mín. 8) <input type="password" x-model="next" autocomplete="new-password"></label>
       <label>Repetir contraseña nueva <input type="password" x-model="repeat" autocomplete="new-password"></label>

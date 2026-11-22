@@ -101,6 +101,9 @@ def test_password_change_and_token_are_session_only(ctx, client):
     old = ctx.config.get("api.token")
     new = client.post("/api/v1/auth/token", headers=h).get_json()["token"]
     assert new != old and ctx.config.get("api.token") == new
+    # The user is always "admin": a username in the request is ignored.
+    client.post("/api/v1/auth/password", json={"current": "nueva-clave", "new": "nueva-clave", "username": "otro"}, headers=h)
+    assert ctx.config.get("web.username") == "admin"
     client.post("/logout", data={"csrf": csrf})
     assert login(client, "nueva-clave")[0].status_code == 302
 
@@ -121,3 +124,4 @@ def test_static_assets_are_versioned_by_content(client, tmp_path):
     login(client)
     page = client.get("/").get_data(as_text=True)
     assert "app.js?v=" in page and "?v=2.0.0" not in page
+    assert "Silttec | Lisoft" in page

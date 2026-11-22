@@ -142,9 +142,6 @@ def change_password():
     if len(new) < 8:
         abort(400, "La nueva contraseña debe tener al menos 8 caracteres")
     values = {"password_hash": generate_password_hash(new, method=PASSWORD_METHOD), "default_password": False}
-    username = str(data.get("username", "")).strip()
-    if username:
-        values["username"] = username
     cfg.update_section("web", values, notify=False)
     session["user"] = cfg.get("web.username")
     return jsonify(ok=True)

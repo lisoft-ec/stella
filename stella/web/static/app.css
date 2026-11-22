@@ -91,3 +91,21 @@ button.danger { background: #b03a2e; border-color: #b03a2e; color: #fff; }
 body.resetting main { opacity: .5; pointer-events: none; }
 .inline-check { display: flex; align-items: center; gap: .3rem; white-space: nowrap; margin-bottom: .5rem; font-size: .85rem; }
 .inline-check input { margin: 0; }
+
+.page-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; flex-wrap: wrap; }
+.page-head h2 { margin-bottom: 0; }
+.page-head > button { width: auto; margin: 0; }
+ul.about li { list-style: none; margin-bottom: .4rem; }
+ul.about { padding-left: 0; }
+.table-scroll { overflow-x: auto; max-width: 100%; }
+
+/* Sin scroll horizontal en móvil: los hijos de grid/flex pueden encogerse */
+.panels > article, .panel-body, .grid > *, .grid-2 > * { min-width: 0; }
+.panels input, .panels select { min-width: 0; max-width: 100%; }
+code, .mono { overflow-wrap: anywhere; }
+table.leds th, table.leds td { padding: .35rem .3rem; }
+table.leds td:first-child { white-space: normal; }
+@media (max-width: 600px) {
+  .panels > article { padding: 1rem .75rem; }
+  table.leds button.small { padding: .2rem .45rem; font-size: .8rem; }
+}
