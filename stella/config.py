@@ -140,8 +140,10 @@ DEFAULTS = {
     "leds": {
         # "gpio" on the Coral board, "none" elsewhere.
         "driver": "gpio",
+        # Header pins: red = GPIO_P18, green = GPIO_P13, blue = GPIO_P16 (sysfs numbers).
         "pins": {"red": 138, "green": 6, "blue": 73},
-        "active_level": 1,
+        # 0 = common-anode LED (a colour lights when its pin is low), 1 = common cathode.
+        "active_level": 0,
         "flash_seconds": 1.0,
         "colors": {
             "entry": [0, 1, 0],
@@ -288,6 +290,9 @@ def validate(cfg):
     leds = cfg["leds"]
     if leds["driver"] not in ("gpio", "none"):
         raise ConfigError("leds.driver: 'gpio' o 'none'")
+    if int(leds["active_level"]) not in (0, 1):
+        raise ConfigError("leds.active_level: 0 (ánodo común) o 1 (cátodo común)")
+    leds["active_level"] = int(leds["active_level"])
     return cfg
 
 

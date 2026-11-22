@@ -215,4 +215,8 @@ Sin ninguna red conocida, a los 90 segundos aparece el hotspot **StellaWIFI** (c
 | azul | sin red |
 | apagado | funcionamiento normal |
 
+Conexión en el conector de 40 pines: **rojo = GPIO_P18** (`gpio138`), **verde = GPIO_P13** (`gpio6`), **azul = GPIO_P16** (`gpio73`).
+El LED de la caja es de **ánodo común** (`leds.active_level: 0`): un color se enciende cuando su pin está a 0 V.
+Si en reposo el LED queda blanco, el tipo está invertido: cámbialo en *Sistema → LED RGB → Tipo de LED*.
+
 Los colores se pueden cambiar en *Sistema*.

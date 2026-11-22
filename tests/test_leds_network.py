@@ -43,6 +43,45 @@ def test_gpio_driver_falls_back_without_hardware(config):
     leds.tick()
 
 
+class FakeGPIO:
+    pins = {}
+
+    def __init__(self, line, direction):
+        self.line = line
+        self.value = {"high": True, "low": False}.get(direction)
+        FakeGPIO.pins[line] = self
+
+    def write(self, value):
+        self.value = bool(value)
+
+    def close(self):
+        pass
+
+
+@pytest.mark.parametrize("level, idle, red", [(0, True, (False, True, True)), (1, False, (True, False, False))])
+def test_gpio_levels_follow_led_type(config, monkeypatch, level, idle, red):
+    import sys
+    import types
+
+    monkeypatch.setitem(sys.modules, "periphery", types.SimpleNamespace(GPIO=FakeGPIO))
+    FakeGPIO.pins = {}
+    config.update_section("leds", {"driver": "gpio", "active_level": level})
+    leds = Leds(config)
+    assert leds.driver == "gpio"
+    # red = P18 (138), green = P13 (6), blue = P16 (73); all off right after opening.
+    assert [FakeGPIO.pins[p].value for p in (138, 6, 73)] == [idle] * 3
+    leds.pins.write((1, 0, 0))
+    assert tuple(FakeGPIO.pins[p].value for p in (138, 6, 73)) == red
+
+
+def test_led_type_defaults_to_common_anode_and_is_validated(config):
+    from stella.config import ConfigError
+
+    assert config.get("leds.active_level") == 0
+    with pytest.raises(ConfigError):
+        config.update_section("leds", {"active_level": 5})
+
+
 # -- nmcli parsing --------------------------------------------------------------
 def test_split_terse_handles_escaped_colons():
     assert split_terse(r"Mi\:Red:80:WPA2") == ["Mi:Red", "80", "WPA2"]

@@ -27,7 +27,9 @@ class _GpioPins:
         from periphery import GPIO
 
         self.active = int(active_level)
-        self.gpios = [GPIO(int(pins[c]), "out") for c in ("red", "green", "blue")]
+        # Open each pin already at its "off" level so the LED does not blink on start.
+        off = "low" if self.active else "high"
+        self.gpios = [GPIO(int(pins[c]), off) for c in ("red", "green", "blue")]
 
     def write(self, rgb):
         for gpio, value in zip(self.gpios, rgb):
