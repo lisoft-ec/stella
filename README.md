@@ -132,7 +132,7 @@ Autenticación con `Authorization: Bearer <token>`; el token se ve y se regenera
 | `GET /api/v1/events?since_id=&limit=` | historial de cruces |
 | `GET /api/v1/config[/sección]` · `PUT /api/v1/config/<sección>` | configuración (los secretos salen enmascarados) |
 | `GET /api/v1/stream` | SSE con detecciones y contadores en vivo |
-| `GET /api/v1/network/status` · `GET /api/v1/network/scan` | red |
+| `GET /api/v1/network/status` | red: conexiones, IPs y nombre del equipo |
 | `GET /api/v1/ota` · `POST /api/v1/ota/check` · `POST /api/v1/ota/apply` | actualizaciones |
 | `POST /api/v1/system/restart` · `POST /api/v1/system/reboot` | reinicios |
 
@@ -151,6 +151,24 @@ Con `network.managed: true`, Stella gestiona NetworkManager:
 - Configura la Ethernet (DHCP o IP fija).
 - Prepara el **hotspot de respaldo** (`StellaWIFI` por defecto, web en `http://10.42.0.1:7777`). Lo activa si pasan `hotspot.timeout` segundos sin conexión, y cada `retry_interval` segundos vuelve a probar las redes wifi guardadas (las de Stella y cualquier otra), salvo que alguien esté usando la web.
 - Las conexiones USB gadget de la placa nunca se tocan.
+
+### Configurar la wifi desde el hotspot
+
+1. Conéctate a `StellaWIFI` (clave `stella1234`) y abre `http://10.42.0.1:7777`. Si el móvil avisa «sin internet», elige mantener la conexión y desactiva los datos móviles.
+2. En *Red → Conectar a una red wifi*, escribe el nombre exacto de la red y su clave. Marca **Red oculta** si la red no anuncia su nombre. Pulsa **Guardar y conectar**.
+3. La placa deja el hotspot y se une a esa red. Si no lo consigue en unos 45 segundos, vuelve a crear `StellaWIFI`.
+
+No se buscan redes: con la wifi funcionando como punto de acceso, el chip no puede escanear.
+
+### ¿Qué IP tiene la placa?
+
+Con wifi o con cable Ethernet (DHCP del router), estas son las formas de encontrarla:
+
+- **Por nombre:** `http://<hostname>.local:7777`, por ejemplo `http://mocha-rabbit.local:7777`. La placa se anuncia por mDNS (avahi). Funciona en Windows 10+, macOS y Linux; en Android depende del navegador.
+- **Por cable USB:** `http://192.168.200.2:7777`. La página *Red* muestra la IP de cada interfaz.
+- **En el router:** en la lista de clientes DHCP aparece con el nombre de la placa.
+- **Por MQTT:** el tópico `<prefijo>/<id>/status` incluye las IPs.
+- Si necesitas una IP fija por cable, configúrala en *Red → Ethernet → IP fija*.
 - Stella usa `nmcli` sin `sudo`: el usuario `mendel` pertenece al grupo `netdev`, y polkit le da los permisos necesarios.
 
 ### Red USB
