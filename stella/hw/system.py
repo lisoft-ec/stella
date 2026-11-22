@@ -101,3 +101,55 @@ def reboot(delay=1.0):
         raise RuntimeError("Reiniciar el equipo solo está permitido en la placa")
     subprocess.Popen(["sh", "-c", "sleep %s; sudo -n reboot" % float(delay)], start_new_session=True,
                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+# -- clock ------------------------------------------------------------------
+# Without Internet (hotspot mode) the board cannot sync NTP and its clock may
+# be wrong after a reboot. The web UI sends the browser's time; it is applied
+# only on the board, only when NTP is not synchronized and only if it differs.
+CLOCK_TOLERANCE = 30  # seconds
+
+
+def _run(cmd, timeout=10):
+    return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                          universal_newlines=True, timeout=timeout)
+
+
+def clock_synchronized():
+    """True/False from systemd-timedated, None if it cannot be asked."""
+    try:
+        out = _run(["timedatectl", "show", "-p", "NTPSynchronized", "--value"]).stdout.strip()
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return {"yes": True, "no": False}.get(out)
+
+
+def set_clock(epoch):
+    """Set the system clock and the RTC (UTC). NTP is paused while setting it."""
+    stamp = time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime(epoch))
+    _run(["sudo", "-n", "timedatectl", "set-ntp", "false"])
+    try:
+        result = _run(["sudo", "-n", "timedatectl", "set-time", stamp])
+        if result.returncode != 0:
+            # Fallback without RTC: at least fix the running clock.
+            result = _run(["sudo", "-n", "date", "-u", "-s", "@%d" % int(epoch)])
+            if result.returncode != 0:
+                raise RuntimeError(result.stderr.strip() or "no se pudo ajustar la hora")
+    finally:
+        _run(["sudo", "-n", "timedatectl", "set-ntp", "true"])
+
+
+def sync_clock_from(epoch):
+    """Apply a client's time if appropriate. Returns ``{changed, offset, reason}``."""
+    offset = float(epoch) - time.time()
+    if not under_systemd():
+        return {"changed": False, "offset": round(offset, 1), "reason": "solo en la placa"}
+    if clock_synchronized():
+        return {"changed": False, "offset": round(offset, 1), "reason": "la hora ya está sincronizada (NTP)"}
+    if abs(offset) < CLOCK_TOLERANCE:
+        return {"changed": False, "offset": round(offset, 1), "reason": "la diferencia es pequeña"}
+    before = time.strftime("%Y-%m-%d %H:%M:%S")
+    set_clock(epoch)
+    log.warning("Clock set from the web browser: %s -> %s (offset %+.0f s)",
+                before, time.strftime("%Y-%m-%d %H:%M:%S"), offset)
+    return {"changed": True, "offset": round(offset, 1), "reason": "hora ajustada"}

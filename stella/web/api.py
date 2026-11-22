@@ -301,6 +301,21 @@ def ota_apply():
     return jsonify(dict(state, ok=True))
 
 
+@api.route("/system/clock", methods=["POST"])
+def system_clock():
+    """The browser sends its time; it is used only if the board clock is not NTP-synced."""
+    try:
+        epoch = float(body().get("epoch"))
+    except (TypeError, ValueError):
+        abort(400, "epoch debe ser un número (segundos Unix)")
+    if epoch < 1704067200:  # 2024-01-01: reject obviously wrong client clocks
+        abort(400, "Hora del cliente no válida")
+    try:
+        return jsonify(system.sync_clock_from(epoch))
+    except RuntimeError as exc:
+        abort(503, str(exc))
+
+
 @api.route("/logs")
 def logs():
     limit = min(400, max(1, request.args.get("limit", 200, type=int)))

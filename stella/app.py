@@ -108,6 +108,7 @@ class App:
             "webhook": {"enabled": self.webhook.enabled()},
             "pending_deliveries": self.storage.pending_count(),
             "default_password": bool(self.config.get("web.default_password")),
+            "clock_synced": system.clock_synchronized(),
         }
 
     def heartbeat(self):

@@ -118,6 +118,22 @@ function videoBase() {
   };
 }
 
+/* Without Internet the board cannot sync its clock: offer it the browser's time
+   (the server applies it only when NTP is not synchronized). Once per 10 minutes. */
+async function syncClock() {
+  if (location.pathname === '/login') return;
+  try {
+    const last = Number(sessionStorage.getItem('stella-clock') || 0);
+    if (Date.now() - last < 600000) return;
+    sessionStorage.setItem('stella-clock', String(Date.now()));
+  } catch (e) { /* storage unavailable: just try */ }
+  try {
+    const r = await api('POST', '/api/v1/system/clock', { epoch: Date.now() / 1000 });
+    if (r.changed) toast('Hora de la placa ajustada con la de este dispositivo (' + Math.round(r.offset) + ' s)');
+  } catch (e) { /* not critical */ }
+}
+document.addEventListener('DOMContentLoaded', syncClock);
+
 document.addEventListener('alpine:init', () => {
   /* ---------- dashboard ---------- */
   Alpine.data('dashboard', () => ({
