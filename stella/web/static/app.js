@@ -341,6 +341,7 @@ document.addEventListener('alpine:init', () => {
       catch (e) { this.statusError = e.message; }
     },
     webUrl() { return this.status && this.status.hostname ? 'http://' + this.status.hostname + '.local:7777' : ''; },
+    notice: '',
     async connect() {
       const ssid = this.form.ssid.trim();
       if (!ssid) { toast('Escribe el nombre de la red', 'error'); return; }
@@ -348,13 +349,12 @@ document.addEventListener('alpine:init', () => {
       const others = this.data.wifi.filter((w) => w.ssid !== ssid);
       // The newest network gets the highest priority.
       const top = others.reduce((m, w) => Math.max(m, w.priority || 0), 0);
-      const msg = 'La placa se conectará a «' + ssid + '». Si estás conectado a ' + this.data.hotspot.ssid +
-                  ', perderás la conexión: después entra en ' + (this.webUrl() || 'la IP que le dé tu router') +
-                  '. Si no logra conectarse, en un minuto vuelve a crear ' + this.data.hotspot.ssid + '. ¿Continuar?';
-      if (!confirm(msg)) return;
       this.data.wifi = others.concat([{ ssid, password: this.form.password, priority: top + 1, hidden: this.form.hidden }]);
       await this.save();
       this.form = { ssid: '', password: '', hidden: false };
+      this.notice = 'Red «' + ssid + '» guardada. La placa se está conectando: si estabas en ' + this.data.hotspot.ssid +
+                    ' perderás la conexión. Después entra en ' + (this.webUrl() || 'la IP que le dé tu router') +
+                    '. Si no lo consigue en un minuto, vuelve a crear ' + this.data.hotspot.ssid + '.';
     },
     async forget(i) {
       if (!confirm('¿Olvidar la red «' + this.data.wifi[i].ssid + '»?')) return;

@@ -24,7 +24,8 @@
           </label>
           <label><input type="checkbox" x-model="form.hidden"> Red oculta (no aparece en la lista de redes)</label>
           <button @click="connect()" :aria-busy="saving">Guardar y conectar</button>
-          <p class="small muted">Si la placa está en el hotspot, se desconectará de él para unirse a esta red.</p>
+          <p class="banner info small" x-show="notice" x-text="notice"></p>
+          <p class="small muted" x-show="!notice">Si la placa está en el hotspot, se desconectará de él para unirse a esta red.</p>
         </div>
       </template>
     </article>
