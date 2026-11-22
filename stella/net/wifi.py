@@ -56,8 +56,9 @@ def _hash(value):
 
 
 class Network:
-    def __init__(self, config, storage, runner=None, clock=time.monotonic):
+    def __init__(self, config, storage, runner=None, clock=time.monotonic, sleep=time.sleep):
         self.config = config
+        self._sleep = sleep
         self.storage = storage
         self._runner = runner
         self._clock = clock
@@ -134,12 +135,26 @@ class Network:
         log.warning("Factory reset: Wi-Fi connections removed: %s", ", ".join(removed) or "(none)")
         return removed
 
-    def scan(self):
-        out = self.nmcli("-t", "-f", "SSID,SIGNAL,SECURITY", "device", "wifi", "list", "--rescan", "yes")
+    def scan(self, wait=4.0):
+        """Visible networks, strongest first.
+
+        ``--rescan yes`` returns before the scan finishes while wlan0 runs the
+        hotspot (only our own AP shows up), so: request a rescan, wait, then
+        read NetworkManager's list. Our hotspot and hidden SSIDs are left out.
+        """
+        try:
+            self.nmcli("device", "wifi", "rescan")
+        except NmcliError as exc:
+            # "Scanning not allowed immediately following previous scan": use the last results.
+            log.debug("Wi-Fi rescan not started: %s", exc)
+        else:
+            self._sleep(wait)
+        out = self.nmcli("-t", "-f", "SSID,SIGNAL,SECURITY", "device", "wifi", "list", "--rescan", "no")
+        own = self.config.get("network.hotspot.ssid")
         best = {}
         for line in out.splitlines():
             parts = split_terse(line)
-            if len(parts) < 3 or not parts[0]:
+            if len(parts) < 3 or not parts[0] or parts[0] == own:
                 continue
             signal = int(parts[1]) if parts[1].isdigit() else 0
             if parts[0] not in best or signal > best[parts[0]]["signal"]:
@@ -171,6 +186,9 @@ class Network:
                         "connection.autoconnect-priority", str(wifi["priority"])]
                 if wifi["password"]:
                     args += ["wifi-sec.key-mgmt", "wpa-psk", "wifi-sec.psk", wifi["password"]]
+                if wifi.get("hidden"):
+                    # Hidden SSID: NetworkManager must probe for it explicitly.
+                    args += ["802-11-wireless.hidden", "yes"]
                 self.nmcli(*args)
                 log.info("Wi-Fi connection configured: %s", wifi["ssid"])
 

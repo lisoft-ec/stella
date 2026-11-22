@@ -90,3 +90,5 @@ pre.logs { max-height: 24rem; overflow: auto; font-size: .75rem; white-space: pr
 button.danger { background: #b03a2e; border-color: #b03a2e; color: #fff; }
 .toolbar.end { justify-content: flex-end; margin-top: -.5rem; }
 body.resetting main { opacity: .5; pointer-events: none; }
+.inline-check { display: flex; align-items: center; gap: .3rem; white-space: nowrap; margin-bottom: .5rem; font-size: .85rem; }
+.inline-check input { margin: 0; }

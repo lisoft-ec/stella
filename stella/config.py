@@ -119,7 +119,7 @@ DEFAULTS = {
         # The board user is in the "netdev" group: polkit lets it use nmcli without sudo.
         "use_sudo": False,
         "interface": "wlan0",
-        "wifi": [],  # [{ssid, password, priority}]
+        "wifi": [],  # [{ssid, password, priority, hidden}]
         "hotspot": {
             "enabled": True,
             "ssid": "StellaWIFI",
@@ -276,7 +276,8 @@ def validate(cfg):
         password = str(item.get("password", "") or "")
         if password and len(password) < 8:
             raise ConfigError("network.wifi: la clave de '%s' debe tener al menos 8 caracteres" % ssid)
-        wifi.append({"ssid": ssid, "password": password, "priority": int(item.get("priority", 0))})
+        wifi.append({"ssid": ssid, "password": password, "priority": int(item.get("priority", 0) or 0),
+                     "hidden": bool(item.get("hidden", False))})
     net["wifi"] = wifi
     hs = net["hotspot"]
     if hs["enabled"] and len(str(hs["password"])) < 8:

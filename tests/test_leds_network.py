@@ -106,7 +106,7 @@ class Clock:
 
 def network(config, storage, nm=None, clock=None):
     config.update_section("network", {"managed": True}, notify=False)
-    return Network(config, storage, runner=nm or FakeNmcli(), clock=clock or Clock())
+    return Network(config, storage, runner=nm or FakeNmcli(), clock=clock or Clock(), sleep=lambda s: None)
 
 
 def test_apply_creates_only_changed_connections(config, storage):
@@ -257,3 +257,50 @@ def test_status_is_cached_for_the_leds(config, storage):
 def test_nmcli_runs_without_sudo_by_default(config, storage):
     net = Network(config, storage)
     assert net.nmcli.use_sudo is False
+
+
+def test_scan_waits_for_rescan_and_hides_own_hotspot(config, storage):
+    nm = FakeNmcli()
+    slept = []
+    config.update_section("network", {"managed": True}, notify=False)
+    net = Network(config, storage, runner=nm, sleep=slept.append)
+    original = nm.__call__
+
+    def nmcli(*args):
+        if args[:3] == ("-t", "-f", "SSID,SIGNAL,SECURITY"):
+            assert args[-2:] == ("--rescan", "no")
+            return "StellaWIFI:0:WPA2\n:45:WPA2\nWIFI-IOT:79:WPA2\n"
+        return original(*args)
+    net._runner = nmcli
+    assert net.scan() == [{"ssid": "WIFI-IOT", "signal": 79, "security": "WPA2"}]
+    assert slept == [4.0]
+    assert ("device", "wifi", "rescan") in nm.calls
+
+
+def test_scan_uses_last_results_when_rescan_is_refused(config, storage):
+    nm = FakeNmcli()
+    slept = []
+    net = network(config, storage, nm)
+    net._sleep = slept.append
+    original = nm.__call__
+
+    def nmcli(*args):
+        if args == ("device", "wifi", "rescan"):
+            raise NmcliError("Scanning not allowed immediately following previous scan.")
+        return original(*args)
+    net._runner = nmcli
+    assert [n["ssid"] for n in net.scan()] == ["Casa", "Vecino"]
+    assert slept == []
+
+
+def test_hidden_network_is_configured_as_hidden(config, storage):
+    nm = FakeNmcli()
+    net = network(config, storage, nm)
+    config.update_section("network", {"wifi": [{"ssid": "Oculta", "password": "clave-oculta", "hidden": True},
+                                               {"ssid": "Visible", "password": ""}]}, notify=False)
+    net.apply()
+    adds = {c[c.index("con-name") + 1]: c for c in nm.calls if c[:2] == ("connection", "add")}
+    oculta = adds["stella-wifi-Oculta"]
+    assert oculta[oculta.index("802-11-wireless.hidden") + 1] == "yes"
+    assert "802-11-wireless.hidden" not in adds["stella-wifi-Visible"]
+    assert config.get("network.wifi")[1]["hidden"] is False

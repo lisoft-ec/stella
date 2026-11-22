@@ -42,7 +42,7 @@
             <button class="outline small" @click="addWifi(n.ssid)">Añadir</button>
           </li>
         </template>
-        <li class="muted small" x-show="!networks.length">Pulsa «Buscar» para ver las redes wifi cercanas.</li>
+        <li class="muted small" x-show="!networks.length" x-text="scanning ? 'Buscando redes (unos segundos)…' : 'Pulsa «Buscar» para ver las redes wifi cercanas.'"></li>
       </ul>
     </article>
   </div>
@@ -57,10 +57,23 @@
             <input x-model="w.ssid" placeholder="Nombre de la red (SSID)">
             <input type="password" x-model="w.password" placeholder="Clave (vacía si es abierta)" autocomplete="new-password">
             <input type="number" x-model.number="w.priority" title="Prioridad" class="narrow">
+            <label class="inline-check" title="Red oculta (no anuncia su nombre)"><input type="checkbox" x-model="w.hidden"> oculta</label>
             <button class="outline secondary small" @click="data.wifi.splice(i, 1)">✕</button>
           </div>
         </template>
+        <p class="small muted" x-show="!data.wifi.length">Sin redes guardadas: añade una desde «Redes visibles» o como red oculta.</p>
         <button class="outline secondary small" @click="addWifi('')">Añadir red</button>
+      </article>
+
+      <article>
+        <header><strong>Red oculta</strong></header>
+        <p class="small muted">Para redes que no anuncian su nombre y por eso no aparecen al buscar. Escribe el nombre exacto (distingue mayúsculas).</p>
+        <div class="grid">
+          <label>Nombre de la red (SSID) <input x-model="hidden.ssid" autocomplete="off"></label>
+          <label>Clave <input type="password" x-model="hidden.password" autocomplete="new-password" placeholder="vacía si es abierta"></label>
+          <label>Prioridad <input type="number" x-model.number="hidden.priority"></label>
+        </div>
+        <button @click="addHidden()" :aria-busy="saving">Añadir y aplicar</button>
       </article>
 
       <div class="grid-2">

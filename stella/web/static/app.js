@@ -329,9 +329,21 @@ document.addEventListener('alpine:init', () => {
       catch (e) { toast(e.message, 'error'); }
       this.scanning = false;
     },
+    hidden: { ssid: '', password: '', priority: 0 },
     addWifi(ssid) {
-      if (ssid && this.data.wifi.some((w) => w.ssid === ssid)) return;
-      this.data.wifi.push({ ssid, password: '', priority: 0 });
+      if (ssid && this.data.wifi.some((w) => w.ssid === ssid)) { toast('Esa red ya está en la lista', 'error'); return; }
+      this.data.wifi.push({ ssid, password: '', priority: 0, hidden: false });
+      if (ssid) toast('Escribe la clave de ' + ssid + ' y pulsa «Guardar y aplicar»');
+    },
+    async addHidden() {
+      const ssid = this.hidden.ssid.trim();
+      if (!ssid) { toast('Escribe el nombre de la red', 'error'); return; }
+      if (this.hidden.password && this.hidden.password.length < 8) { toast('La clave debe tener al menos 8 caracteres', 'error'); return; }
+      const wifi = this.data.wifi.filter((w) => w.ssid !== ssid);
+      wifi.push({ ssid, password: this.hidden.password, priority: this.hidden.priority || 0, hidden: true });
+      this.data.wifi = wifi;
+      await this.save();
+      this.hidden = { ssid: '', password: '', priority: 0 };
     },
   }));
 
