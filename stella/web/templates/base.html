@@ -8,8 +8,8 @@
   <title>{% block title %}{{ device_name }}{% endblock %} · Stella</title>
   <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='vendor/pico.min.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v={{ version }}">
-  <script defer src="{{ url_for('static', filename='app.js') }}?v={{ version }}"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v={{ assets }}">
+  <script defer src="{{ url_for('static', filename='app.js') }}?v={{ assets }}"></script>
   <script defer src="{{ url_for('static', filename='vendor/alpine.min.js') }}"></script>
 </head>
 <body>

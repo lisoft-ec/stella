@@ -108,3 +108,16 @@ def test_password_change_and_token_are_session_only(ctx, client):
 def test_login_redirect_is_local_only(client):
     resp = client.post("/login?next=//evil.example", data={"username": "admin", "password": "stella"})
     assert resp.headers["Location"].endswith("/")
+
+
+def test_static_assets_are_versioned_by_content(client, tmp_path):
+    from stella.web import asset_version
+
+    (tmp_path / "app.js").write_text("a")
+    (tmp_path / "app.css").write_text("b")
+    v1 = asset_version(str(tmp_path))
+    (tmp_path / "app.js").write_text("a2")
+    assert asset_version(str(tmp_path)) != v1
+    login(client)
+    page = client.get("/").get_data(as_text=True)
+    assert "app.js?v=" in page and "?v=2.0.0" not in page

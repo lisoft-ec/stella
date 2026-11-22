@@ -1,11 +1,25 @@
 """Flask web interface and REST API."""
 import datetime
+import hashlib
+import os
 import hmac
 import secrets
 
 from flask import Flask, g, jsonify, redirect, request, session, url_for
 
 PUBLIC_ENDPOINTS = ("views.login", "static")
+
+
+def asset_version(static_dir):
+    """Short hash of app.js/app.css contents: any change forces browsers to download them again."""
+    digest = hashlib.sha256()
+    for name in ("app.js", "app.css"):
+        try:
+            with open(os.path.join(static_dir, name), "rb") as fh:
+                digest.update(fh.read())
+        except OSError:
+            pass
+    return digest.hexdigest()[:10]
 
 
 def create_app(ctx):
@@ -22,6 +36,7 @@ def create_app(ctx):
         SEND_FILE_MAX_AGE_DEFAULT=3600,
     )
     app.extensions["stella"] = ctx
+    assets = asset_version(app.static_folder)
     app.register_blueprint(views)
     app.register_blueprint(api, url_prefix="/api/v1")
 
@@ -55,6 +70,7 @@ def create_app(ctx):
         return {
             "csrf_token": session["csrf"],
             "version": __version__,
+            "assets": assets,
             "device_name": ctx.config.get("device.name"),
             "device_id": ctx.config.get("device.id"),
             "default_password": bool(ctx.config.get("web.default_password")),
