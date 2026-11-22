@@ -42,8 +42,14 @@
             <button class="outline small" @click="addWifi(n.ssid)">Añadir</button>
           </li>
         </template>
-        <li class="muted small" x-show="!networks.length" x-text="scanning ? 'Buscando redes (unos segundos)…' : 'Pulsa «Buscar» para ver las redes wifi cercanas.'"></li>
+        <li class="muted small" x-show="!networks.length" x-text="scanning ? 'Buscando redes (unos segundos)…' : (scanCached ? 'No hay ninguna lista guardada todavía.' : 'Pulsa «Buscar» para ver las redes wifi cercanas.')"></li>
       </ul>
+      <template x-if="scanCached">
+        <div>
+          <p class="small muted">Con el hotspot activo la placa no puede buscar redes: esta es la lista guardada<span x-show="scanTime" x-text="' a las ' + scanTime"></span>.</p>
+          <button class="outline secondary small" @click="rescanThroughHotspot()">Buscar de nuevo (corta el hotspot ~20 s)</button>
+        </div>
+      </template>
     </article>
   </div>
 

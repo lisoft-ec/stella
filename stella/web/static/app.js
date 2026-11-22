@@ -317,7 +317,7 @@ document.addEventListener('alpine:init', () => {
 
   /* ---------- network ---------- */
   Alpine.data('networkForm', sectionForm('network', {
-    status: null, statusError: '', networks: [], scanning: false,
+    status: null, statusError: '', networks: [], scanning: false, scanCached: false, scanTime: '',
     async loaded() { if (!this.status) this.loadStatus(); },
     async loadStatus() {
       try { this.status = await api('GET', '/api/v1/network/status'); this.statusError = ''; }
@@ -325,9 +325,18 @@ document.addEventListener('alpine:init', () => {
     },
     async scan() {
       this.scanning = true;
-      try { this.networks = await api('GET', '/api/v1/network/scan'); }
-      catch (e) { toast(e.message, 'error'); }
+      try {
+        const r = await api('GET', '/api/v1/network/scan');
+        this.networks = r.networks;
+        this.scanCached = r.cached;
+        this.scanTime = (r.time || '').slice(11, 16);
+      } catch (e) { toast(e.message, 'error'); }
       this.scanning = false;
+    },
+    async rescanThroughHotspot() {
+      if (!confirm('El hotspot se apagará unos 20 segundos y tendrás que volver a conectarte. ¿Continuar?')) return;
+      try { const r = await api('POST', '/api/v1/network/rescan'); toast(r.message); }
+      catch (e) { toast(e.message, 'error'); }
     },
     hidden: { ssid: '', password: '', priority: 0 },
     addWifi(ssid) {
